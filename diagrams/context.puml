@@ -1,0 +1,18 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+Person(user, "User", "Usuario que solicita la ejecución de workflows")
+
+System_Boundary(c1, "Orquestador de Workflows") {
+    Container(web_app, "Web Application", "Vue.js", "Permite a los usuarios gestionar y ejecutar workflows")
+    Container(workflow_engine, "Motor de Workflows", "Java/Spring", "Ejecuta y coordina los workflows")
+    Container(database, "Base de Datos", "Almacena datos de entrada y resultados")
+}
+
+Rel(user, web_app, "Solicita ejecución de workflows", "HTTPS")
+Rel(web_app, workflow_engine, "Envía solicitudes de ejecución", "Internal")
+Rel(workflow_engine, database, "Lee datos de entrada/Almacena resultados", "SQL/HTTPS")
+
+LAYOUT_WITH_LEGEND()
+
+@enduml
