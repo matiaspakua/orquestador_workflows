@@ -71,3 +71,11 @@ docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 ```bash
 docker-compose -f docker-compose.test.yml up --build
 ```
+
+## TODO
+
+1. Agregar Grafana para telemetria de los componentes (no logs, sino telemetria funcional)
+2. Agregar Prometheus para logs y monitoreo (logs técnicos)
+3. Definir como funciona el orquestador y los workflows
+4. Hacer una pruebas con el producer y el consumer usando el orquestador.
+5. Implementar una UI para ver el progreso de ejecución del orquestador.
