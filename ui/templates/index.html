@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event-Driven System Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+            padding: 1rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.2s ease;
+        }
+        
+        .card:hover { transform: translateY(-2px); }
+        
+        .card h3 {
+            color: #667eea;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 0.5rem;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .stat-item {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 1rem;
+            border-radius: 6px;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            display: block;
+        }
+        
+        .stat-label { font-size: 0.9rem; opacity: 0.9; }
+        
+        .table-container {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 0.5rem;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+        }
+        
+        .status {
+            padding: 0.2rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        
+        .status.pending { background: #fff3cd; color: #856404; }
+        .status.processed { background: #d4edda; color: #155724; }
+        .status.failed { background: #f8d7da; color: #721c24; }
+        .status.error { background: #f5c6cb; color: #721c24; }
+        .status.success { background: #d4edda; color: #155724; }
+        
+        .refresh-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: opacity 0.2s ease;
+        }
+        
+        .refresh-btn:hover { opacity: 0.8; }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .auto-refresh {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .metric-card {
+            background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+            color: white;
+            text-align: center;
+            padding: 1.5rem;
+        }
+        
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔄 Event-Driven System Dashboard</h1>
+        <p>Sistema de monitoreo en tiempo real - PostgreSQL & Kafka</p>
+    </div>
+
+    <div class="dashboard">
+        <!-- Estadísticas Generales -->
+        <div class="card">
+            <h3>📊 Estadísticas Generales</h3>
+            <div class="stats-grid" id="generalStats">
+                <div class="stat-item">
+                    <span class="stat-number" id="totalEvents">-</span>
+                    <span class="stat-label">Total Eventos</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="pendingEvents">-</span>
+                    <span class="stat-label">Pendientes</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="processedEvents">-</span>
+                    <span class="stat-label">Procesados</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="errorEvents">-</span>
+                    <span class="stat-label">Errores</span>
+                </div>
+            </div>
+            <button class="refresh-btn" onclick="loadData()">🔄 Actualizar</button>
+            <div class="auto-refresh">
+                <label>
+                    <input type="checkbox" id="autoRefresh" onchange="toggleAutoRefresh()">
+                    Auto-refresh (10s)
+                </label>
+                <div id="loadingIndicator" class="loading" style="display: none;"></div>
+            </div>
+        </div>
+
+        <!-- Rendimiento del Sistema -->
+        <div class="card metric-card">
+            <h3 style="color: white;">⚡ Rendimiento</h3>
+            <div class="metric-value" id="avgProcessingTime">-</div>
+            <div>Tiempo promedio (ms)</div>
+            <div style="margin-top: 1rem;">
+                <div>Procesados última hora: <span id="recentProcessed" style="font-weight: bold;">-</span></div>
+                <div>Tasa de éxito: <span id="successRate" style="font-weight: bold;">-%</span></div>
+            </div>
+        </div>
+
+        <!-- Eventos por Tipo -->
+        <div class="card">
+            <h3>📋 Eventos por Tipo</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Tipo</th>
+                            <th>Pendientes</th>
+                            <th>Procesados</th>
+                            <th>Errores</th>
+                        </tr>
+                    </thead>
+                    <tbody id="eventTypesTable">
+                        <tr><td colspan="4">Cargando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Eventos Recientes -->
+        <div class="card">
+            <h3>🕐 Eventos Recientes</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Tipo</th>
+                            <th>Estado</th>
+                            <th>Creado</th>
+                            <th>Procesado por</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recentEventsTable">
+                        <tr><td colspan="4">Cargando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Logs de Procesamiento -->
+        <div class="card">
+            <h3>📝 Logs Recientes</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Event ID</th>
+                            <th>Consumer</th>
+                            <th>Estado</th>
+                            <th>Tiempo (ms)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recentLogsTable">
+                        <tr><td colspan="4">Cargando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Estadísticas de Consumidores -->
+        <div class="card">
+            <h3>🔧 Consumidores</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Consumer ID</th>
+                            <th>Procesados</th>
+                            <th>Exitosos</th>
+                            <th>Errores</th>
+                            <th>Tiempo Avg (ms)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="consumersTable">
+                        <tr><td colspan="5">Cargando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let autoRefreshInterval = null;
+
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            return date.toLocaleString('es-ES');
+        }
+
+        function formatEventId(eventId) {
+            return eventId ? eventId.substring(0, 8) + '...' : '-';
+        }
+
+        function createStatusBadge(status) {
+            const statusLower = status.toLowerCase();
+            return `<span class="status ${statusLower}">${status}</span>`;
+        }
+
+        function showLoading(show) {
+            document.getElementById('loadingIndicator').style.display = show ? 'block' : 'none';
+        }
+
+        async function loadData() {
+            showLoading(true);
+            try {
+                const [statsResponse, consumersResponse] = await Promise.all([
+                    fetch('/api/stats'),
+                    fetch('/api/consumers')
+                ]);
+
+                const stats = await statsResponse.json();
+                const consumers = await consumersResponse.json();
+
+                updateGeneralStats(stats.general_stats);
+                updatePerformanceMetrics(stats.performance);
+                updateEventTypesTable(stats.event_types);
+                updateRecentEventsTable(stats.recent_events);
+                updateRecentLogsTable(stats.recent_logs);
+                updateConsumersTable(consumers);
+
+            } catch (error) {
+                console.error('Error cargando datos:', error);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function updateGeneralStats(stats) {
+            document.getElementById('totalEvents').textContent = stats.total_events || 0;
+            document.getElementById('pendingEvents').textContent = stats.pending || 0;
+            document.getElementById('processedEvents').textContent = stats.processed || 0;
+            document.getElementById('errorEvents').textContent = (stats.failed || 0) + (stats.errors || 0);
+        }
+
+        function updatePerformanceMetrics(performance) {
+            document.getElementById('avgProcessingTime').textContent = Math.round(performance.avg_processing_time_ms || 0);
+            document.getElementById('recentProcessed').textContent = performance.total_processed || 0;
+            
+            const successRate = performance.total_processed > 0 
+                ? Math.round((performance.successful / performance.total_processed) * 100) 
+                : 0;
+            document.getElementById('successRate').textContent = successRate;
+        }
+
+        function updateEventTypesTable(eventTypes) {
+            const tbody = document.getElementById('eventTypesTable');
+            tbody.innerHTML = '';
+
+            Object.keys(eventTypes).forEach(type => {
+                const data = eventTypes[type];
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${type}</td>
+                    <td>${data.PENDING || 0}</td>
+                    <td>${data.PROCESSED || 0}</td>
+                    <td>${(data.FAILED || 0) + (data.ERROR || 0)}</td>
+                `;
+            });
+
+            if (Object.keys(eventTypes).length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4">No hay datos disponibles</td></tr>';
+            }
+        }
+
+        function updateRecentEventsTable(events) {
+            const tbody = document.getElementById('recentEventsTable');
+            tbody.innerHTML = '';
+
+            events.forEach(event => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${event.data_type}</td>
+                    <td>${createStatusBadge(event.status)}</td>
+                    <td>${formatDate(event.created_at)}</td>
+                    <td>${event.processed_by || '-'}</td>
+                `;
+            });
+
+            if (events.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4">No hay eventos recientes</td></tr>';
+            }
+        }
+
+        function updateRecentLogsTable(logs) {
+            const tbody = document.getElementById('recentLogsTable');
+            tbody.innerHTML = '';
+
+            logs.forEach(log => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${formatEventId(log.event_id)}</td>
+                    <td>${log.consumer_id}</td>
+                    <td>${createStatusBadge(log.status)}</td>
+                    <td>${log.processing_time_ms || '-'}</td>
+                `;
+            });
+
+            if (logs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4">No hay logs recientes</td></tr>';
+            }
+        }
+
+        function updateConsumersTable(consumers) {
+            const tbody = document.getElementById('consumersTable');
+            tbody.innerHTML = '';
+
+            consumers.forEach(consumer => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${consumer.consumer_id}</td>
+                    <td>${consumer.total_processed}</td>
+                    <td>${consumer.successful}</td>
+                    <td>${consumer.errors}</td>
+                    <td>${Math.round(consumer.avg_processing_time_ms)}</td>
+                `;
+            });
+
+            if (consumers.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5">No hay consumidores activos</td></tr>';
+            }
+        }
+
+        function toggleAutoRefresh() {
+            const checkbox = document.getElementById('autoRefresh');
+            
+            if (checkbox.checked) {
+                autoRefreshInterval = setInterval(loadData, 10000);
+            } else {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+            }
+        }
+
+        // Cargar datos inicial
+        loadData();
+    </script>
+</body>
+</html>
