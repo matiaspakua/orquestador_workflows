@@ -48,7 +48,7 @@ class EventProducer:
                 self.db_connection = psycopg2.connect(
                     host=os.getenv('POSTGRES_HOST', 'postgres'),
                     port=os.getenv('POSTGRES_PORT', 5432),
-                    database=os.getenv('POSTGRES_DB', 'eventstore'),
+                    database=os.getenv('POSTGRES_DB', 'eventdb'),
                     user=os.getenv('POSTGRES_USER', 'eventuser'),
                     password=os.getenv('POSTGRES_PASSWORD', 'eventpass')
                 )
@@ -147,7 +147,7 @@ class EventProducer:
                 'producer_id': 'producer-1',
                 'metadata': {
                     'data_size_bytes': len(json.dumps(payload)),
-                    'data_location': 'postgresql://postgres/eventstore'
+                    'data_location': 'postgresql://postgres/eventdb'
                 }
             }
             

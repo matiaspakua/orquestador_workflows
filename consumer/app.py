@@ -48,7 +48,7 @@ class EventConsumer:
                 self.db_connection = psycopg2.connect(
                     host=os.getenv('POSTGRES_HOST', 'postgres'),
                     port=os.getenv('POSTGRES_PORT', 5432),
-                    database=os.getenv('POSTGRES_DB', 'eventstore'),
+                    database=os.getenv('POSTGRES_DB', 'eventdb'),
                     user=os.getenv('POSTGRES_USER', 'eventuser'),
                     password=os.getenv('POSTGRES_PASSWORD', 'eventpass')
                 )

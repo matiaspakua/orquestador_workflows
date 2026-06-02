@@ -173,9 +173,6 @@ PRODUCER_INTERVAL=5000    # ms between publishes
 ## Development
 
 ```bash
-# Start with development overrides
-docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
-
 # View service logs
 docker-compose logs -f producer consumer1
 

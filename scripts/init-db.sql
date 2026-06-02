@@ -1,5 +1,7 @@
 -- Inicialización de la base de datos para el sistema event-driven
 
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 -- Tabla para almacenar los datos reales (payload)
 CREATE TABLE IF NOT EXISTS event_data (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
