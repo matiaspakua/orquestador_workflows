@@ -12,7 +12,7 @@ Integration tests that validate end-to-end message flow from producer through Ka
 
 ## Technical Context
 
-**Language/Version**: NEEDS CLARIFICATION — no language specified for microservices; likely Python, Go, or Node.js given typical Kafka/Docker ecosystem
+**Language/Version**: Python 3.14
 
 **Primary Dependencies**: Kafka client libraries, Docker Compose, testing frameworks, PostgreSQL client, gRPC tooling, REST client libraries
 
@@ -43,6 +43,12 @@ Integration tests that validate end-to-end message flow from producer through Ka
 
 **Result**: ALL GATES PASS ✅ — No violations requiring justification.
 
+## Mandatory Quality Gates
+
+- [ ] Spec quality checklist MUST pass before implementation: [checklists/requirements.md](checklists/requirements.md)
+- [ ] All test tasks (T001-T028) MUST be complete before merge
+- [ ] Full test suite MUST pass in CI pipeline before PR merge
+
 ## Project Structure
 
 ### Documentation (this feature)
@@ -63,26 +69,26 @@ specs/005-producer-consumer-test/
 
 ```text
 consumer/
-├── src/
-│   ├── handlers/
-│   ├── models/
-│   └── tests/
-│       ├── integration/
-│       └── unit/
+├── app.py
+├── Dockerfile
+├── requirements.txt
+└── tests/
+    ├── integration/
+    └── unit/
 
 producer/
-├── src/
-│   ├── publishers/
-│   ├── models/
-│   └── tests/
-│       ├── integration/
-│       └── unit/
+├── app.py
+├── Dockerfile
+├── requirements.txt
+└── tests/
+    ├── integration/
+    └── unit/
 
 ui/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
+├── app.py
+├── Dockerfile
+├── requirements.txt
+└── templates/
 
 scripts/
 ├── test/

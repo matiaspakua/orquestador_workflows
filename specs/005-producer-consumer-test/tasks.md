@@ -6,7 +6,7 @@ description: "Integration test suite for producer-consumer message flow via orch
 
 **Input**: Design documents from `specs/005-producer-consumer-test/`
 
-**Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/
+**Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/, checklists/requirements.md (quality gate — MUST pass before implementation)
 
 **Tests**: Test tasks included — this feature IS a test suite. Constitution Principle II mandates integration tests for inter-service contracts.
 
@@ -16,6 +16,7 @@ description: "Integration test suite for producer-consumer message flow via orch
 
 - **[P]**: Can run in parallel (different files, no dependencies)
 - **[Story]**: Which user story this task belongs to (e.g., US1, US2, US3)
+- **`depends_on:`**: Explicit dependency annotation listing tasks that must be completed first
 - Include exact file paths in descriptions
 
 ## Path Conventions
@@ -42,11 +43,11 @@ Tests live under each component's `tests/` directory:
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Create shared test helpers module in producer/tests/conftest.py and consumer/tests/conftest.py with common fixtures (Kafka test client, topic manager, test data generators)
-- [ ] T004 Implement Kafka test topic lifecycle manager that creates and tears down isolated topics with `test.{scenario_id}` prefix per the contract in contracts/message-contract.md
-- [ ] T005 [P] Implement TestScenario data model in producer/tests/models.py with fields for category, setup/execution/cleanup steps, and expected outcomes (per data-model.md)
-- [ ] T006 [P] Implement TestRun data model in consumer/tests/models.py with status tracking, timing, and result_summary fields (per data-model.md)
-- [ ] T007 Create test runner script in scripts/test/run-integration.sh that orchestrates Docker Compose test execution
+- [ ] T003 `depends_on: T001, T002` Create shared test helpers module in producer/tests/conftest.py and consumer/tests/conftest.py with common fixtures (Kafka test client, topic manager, test data generators)
+- [ ] T004 `depends_on: T001` Implement Kafka test topic lifecycle manager that creates and tears down isolated topics with `test.{scenario_id}.{suffix}` pattern per the contract in contracts/message-contract.md
+- [ ] T005 [P] `depends_on: T001, T002` Implement TestScenario data model in producer/tests/models.py with fields for category, setup/execution/cleanup steps, and expected outcomes (per data-model.md)
+- [ ] T006 [P] `depends_on: T001, T002` Implement TestRun data model in consumer/tests/models.py with status tracking, timing, and result_summary fields (per data-model.md)
+- [ ] T007 `depends_on: T001` Create test runner script in scripts/test/run-integration.sh that orchestrates Docker Compose test execution
 
 **Checkpoint**: Foundation ready — user story implementation can now begin in parallel
 
@@ -60,11 +61,12 @@ Tests live under each component's `tests/` directory:
 
 ### Implementation for User Story 1
 
-- [ ] T008 [P] [US1] Implement producer test harness that publishes a message with known payload and sequence number to a test topic in producer/tests/integration/test_message_flow.py
-- [ ] T009 [P] [US1] Implement consumer test harness that subscribes to the test topic and captures received messages in consumer/tests/integration/test_message_flow.py
-- [ ] T010 [US1] Implement end-to-end message flow test that publishes 1 message and asserts consumer receives it within 30s (SC-001) in producer/tests/integration/test_message_flow.py
-- [ ] T011 [US1] Implement payload integrity test that publishes a message with structured JSON payload and asserts consumed payload matches exactly (FR-002) in producer/tests/integration/test_message_flow.py
-- [ ] T012 [US1] Implement message ordering test that publishes 10 messages with sequential ordering_key values and asserts consumer receives them in the same order (FR-003) in producer/tests/integration/test_message_flow.py
+- [ ] T008 [P] [US1] `depends_on: T003, T004, T005` Implement producer test harness that publishes a message with known payload and sequence number to a test topic in producer/tests/integration/test_message_flow.py
+- [ ] T009 [P] [US1] `depends_on: T003, T004, T006` Implement consumer test harness that subscribes to the test topic and captures received messages in consumer/tests/integration/test_message_flow.py
+- [ ] T010 [US1] `depends_on: T008, T009` Implement end-to-end message flow test that publishes 1 message and asserts consumer receives it within 30s (SC-001) in producer/tests/integration/test_message_flow.py
+- [ ] T011 [US1] `depends_on: T008, T009` Implement payload integrity test that publishes a message with structured JSON payload and asserts consumed payload matches exactly (FR-002) in producer/tests/integration/test_message_flow.py
+- [ ] T012 [US1] `depends_on: T008, T009` Implement message ordering test that publishes 10 messages with sequential ordering_key values to a single-partition test topic and asserts consumer receives them in the same order (FR-003) in producer/tests/integration/test_message_flow.py
+- [ ] T023 [US1] `depends_on: T008, T009` Implement consumer-late-join test that publishes a message before consumer starts, then starts consumer and asserts it picks up the message from Kafka (EC-1) in producer/tests/integration/test_message_flow.py
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
 
@@ -78,9 +80,11 @@ Tests live under each component's `tests/` directory:
 
 ### Implementation for User Story 2
 
-- [ ] T013 [P] [US2] Implement Kafka unavailable test that stops Kafka container, verifies producer retries 3 times with exponential backoff per contract retry policy (FR-004), and does not crash in producer/tests/integration/test_error_handling.py
-- [ ] T014 [P] [US2] Implement invalid message test that publishes a malformed message to the test topic and asserts consumer logs the error and continues processing (FR-005) in consumer/tests/integration/test_error_handling.py
-- [ ] T015 [US2] Implement network interruption test that simulates consumer disconnect, verifies resume from last confirmed offset without data loss or duplication (FR-006) in consumer/tests/integration/test_error_handling.py
+- [ ] T013 [P] [US2] `depends_on: T003, T004, T005, T007` Implement Kafka unavailable test that stops Kafka container, verifies producer retries 3 times with exponential backoff per contract retry policy (FR-004), and does not crash in producer/tests/integration/test_error_handling.py
+- [ ] T014 [P] [US2] `depends_on: T003, T004, T006, T007` Implement invalid message test that publishes a malformed message to the test topic and asserts consumer logs the error and continues processing (FR-005) in consumer/tests/integration/test_error_handling.py
+- [ ] T015 [US2] `depends_on: T003, T004, T006, T007` Implement network interruption test that simulates consumer disconnect by stopping the consumer container, verifies resume from last confirmed offset without data loss or duplication (FR-006) in consumer/tests/integration/test_error_handling.py
+- [ ] T024 [P] [US2] `depends_on: T003, T004, T006, T007` Implement duplicate message test that publishes the same message_id twice and asserts consumer processes it only once (EC-2, idempotency) in consumer/tests/integration/test_error_handling.py
+- [ ] T025 [P] [US2] `depends_on: T003, T004, T005, T007` Implement large payload test that publishes a message near the Kafka size limit and asserts consumer handles it with clear error messaging or processes it successfully (EC-3) in producer/tests/integration/test_error_handling.py
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently
 
@@ -94,9 +98,9 @@ Tests live under each component's `tests/` directory:
 
 ### Implementation for User Story 3
 
-- [ ] T016 [P] [US3] Implement orchestrator workflow start test that initiates a workflow, verifies producer begins publishing and consumer begins processing (FR-007) in producer/tests/integration/test_orchestrator.py
-- [ ] T017 [P] [US3] Implement workflow completion test that runs a full publish-consume cycle and asserts orchestrator marks workflow as Completed with persisted results (FR-007) in consumer/tests/integration/test_orchestrator.py
-- [ ] T018 [US3] Implement workflow cancellation test that cancels a running workflow and asserts producer stops publishing and consumer stops processing for that workflow (FR-008) in producer/tests/integration/test_orchestrator.py
+- [ ] T016 [P] [US3] `depends_on: T008, T009` Implement orchestrator workflow start test that initiates a workflow, verifies producer begins publishing and consumer begins processing (FR-007) in producer/tests/integration/test_orchestrator.py
+- [ ] T017 [P] [US3] `depends_on: T008, T009` Implement workflow completion test that runs a full publish-consume cycle and asserts orchestrator marks workflow as Completed with persisted results (FR-007) in consumer/tests/integration/test_orchestrator.py
+- [ ] T018 [US3] `depends_on: T008, T009` Implement workflow cancellation test that cancels a running workflow and asserts producer stops publishing and consumer stops processing for that workflow (FR-008) in producer/tests/integration/test_orchestrator.py
 
 **Checkpoint**: All user stories should now be independently functional
 
@@ -106,10 +110,13 @@ Tests live under each component's `tests/` directory:
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T019 [P] Add performance benchmark test that verifies consumer processes 1,000 messages without data loss or corruption (SC-003) in consumer/tests/integration/test_performance.py
-- [ ] T020 Configure pytest JUnit XML output for CI integration
-- [ ] T021 Add test isolation validation — verify test topics are cleaned up after each run and do not interfere with production topics (per quickstart.md troubleshooting)
-- [ ] T022 Update docker-compose.test.yml with resource limits (per Constitution Principle IV: Performance Requirements)
+- [ ] T019 [P] `depends_on: T003, T004, T006` Add performance benchmark test that verifies consumer processes 1,000 messages without data loss or corruption (SC-003) in consumer/tests/integration/test_performance.py
+- [ ] T020 `depends_on: T007` Configure pytest JUnit XML output for CI integration
+- [ ] T021 `depends_on: T004, T007` Add test isolation validation — verify test topics are cleaned up after each run and do not interfere with production topics (per quickstart.md troubleshooting)
+- [ ] T022 `depends_on: T001` Update docker-compose.test.yml with resource limits (per Constitution Principle IV: Performance Requirements)
+- [ ] T026 `depends_on: T007, T010` Add repeatability verification script in scripts/test/run-integration.sh that runs the full suite 3 times and asserts identical pass/fail results (FR-009)
+- [ ] T027 `depends_on: T007` Add no-manual-intervention verification test that asserts the full suite runs to completion via a single `docker-compose -f docker-compose.test.yml up --build` command without requiring any manual steps (SC-004) in scripts/test/run-integration.sh
+- [ ] T028 `depends_on: T007, T019` Add full-suite timing benchmark that runs all tests and asserts completion under 5 minutes with JUnit XML pass/fail output (SC-005) in scripts/test/run-integration.sh
 
 ---
 

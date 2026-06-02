@@ -91,7 +91,7 @@ As a developer, I want to verify that the orchestrator correctly coordinates pro
 ### Measurable Outcomes
 
 - **SC-001**: The end-to-end message flow test (producer → Kafka → consumer) completes successfully in under 30 seconds.
-- **SC-002**: Error handling tests demonstrate that the producer retries at least 3 times before failing when Kafka is unavailable.
+- **SC-002**: Error handling tests demonstrate that the producer uses 3 total attempts (initial + 2 retries) with exponential backoff (1s, 2s, 4s) when Kafka is unavailable.
 - **SC-003**: The consumer processes at least 1,000 messages without data loss or corruption in a single test run.
 - **SC-004**: All tests run to completion within the Docker Compose test environment without requiring manual intervention.
 - **SC-005**: The complete test suite runs in under 5 minutes and produces a clear pass/fail report for each test scenario.
