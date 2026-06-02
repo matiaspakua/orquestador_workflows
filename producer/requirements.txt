@@ -1,5 +1,4 @@
-psycopg2-binary
-datetime
-faker 
-kafka-python 
-python-json-logger
+psycopg2-binary==2.9.9
+faker==22.6.0
+kafka-python==2.0.2
+python-json-logger==2.0.7
