@@ -32,3 +32,5 @@
 ## Notes
 
 All items pass. No [NEEDS CLARIFICATION] markers remain. Specification is ready for the next phase.
+
+**Post-clarification revalidation**: All 16/16 items still passing. Scope boundaries now explicitly documented.
