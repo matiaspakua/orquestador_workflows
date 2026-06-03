@@ -1,0 +1,53 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "workflow-execution",
+  "title": "WorkflowExecution",
+  "description": "A single running instance of a workflow definition",
+  "type": "object",
+  "required": ["id", "workflow_definition_id", "workflow_definition_version", "status", "input", "attempts", "created_at"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "workflow_definition_id": { "type": "string", "format": "uuid" },
+    "workflow_definition_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["Pending", "Running", "Completed", "Failed", "Cancelled"],
+      "description": "Current lifecycle state"
+    },
+    "current_step_id": {
+      "oneOf": [{ "type": "string" }, { "type": "null" }],
+      "description": "Currently executing step ID (null if not started or done)"
+    },
+    "input": {
+      "type": "object",
+      "description": "Input data for this execution"
+    },
+    "result": {
+      "oneOf": [{ "type": "object" }, { "type": "null" }],
+      "description": "Output result (set on completion)"
+    },
+    "error": {
+      "oneOf": [{ "type": "string" }, { "type": "null" }],
+      "description": "Error message (set on failure)"
+    },
+    "attempts": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Number of execution attempts"
+    },
+    "started_at": {
+      "oneOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }]
+    },
+    "completed_at": {
+      "oneOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

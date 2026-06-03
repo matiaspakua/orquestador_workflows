@@ -1,0 +1,79 @@
+{
+  "name": "order-approval-workflow",
+  "version": "1.0.0",
+  "description": "Three-step order processing: validate → check-amount → auto-process or require-manager",
+  "timeout_seconds": 3600,
+  "tags": {
+    "domain": "orders",
+    "owner": "platform-team"
+  },
+  "input_schema": {
+    "type": "object",
+    "required": ["order_id", "amount", "customer_id"],
+    "properties": {
+      "order_id":    { "type": "string" },
+      "amount":      { "type": "number", "minimum": 0 },
+      "customer_id": { "type": "string" }
+    }
+  },
+  "steps": [
+    {
+      "id": "step-validate",
+      "name": "Validate order",
+      "type": "Task",
+      "config": {
+        "action": "http:call",
+        "target": "http://validation-svc/orders/validate",
+        "payload_template": {
+          "order_id": "{{input.order_id}}",
+          "customer_id": "{{input.customer_id}}"
+        }
+      },
+      "timeout_seconds": 30,
+      "retry_policy": { "max_attempts": 3, "backoff_seconds": 5 },
+      "on_success": "step-check-amount",
+      "on_failure": "__fail__"
+    },
+    {
+      "id": "step-check-amount",
+      "name": "Check order amount",
+      "type": "Decision",
+      "depends_on": ["step-validate"],
+      "config": {
+        "condition": "{{input.amount}} > 500",
+        "branches": {
+          "true": "step-require-manager",
+          "false": "step-auto-process"
+        }
+      }
+    },
+    {
+      "id": "step-auto-process",
+      "name": "Auto-process order",
+      "type": "Task",
+      "config": {
+        "action": "kafka:produce",
+        "target": "orders-approved",
+        "payload_template": {
+          "order_id": "{{input.order_id}}",
+          "approval": "automatic",
+          "processed_at": "{{now}}"
+        }
+      },
+      "on_success": "__end__",
+      "on_failure": "__fail__"
+    },
+    {
+      "id": "step-require-manager",
+      "name": "Require manager approval",
+      "type": "Wait",
+      "config": {
+        "condition": "{{approval.status}} == \"approved\"",
+        "poll_interval_seconds": 30
+      },
+      "timeout_seconds": 3600,
+      "on_success": "__end__",
+      "on_failure": "__fail__"
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "event/workflow-started",
+  "title": "WorkflowStarted",
+  "description": "Emitted when a workflow execution transitions from Pending to Running",
+  "type": "object",
+  "required": ["event_type", "schema_version", "workflow_id", "workflow_execution_id", "workflow_definition_id", "timestamp", "payload"],
+  "properties": {
+    "event_type": { "type": "string", "const": "WorkflowStarted" },
+    "schema_version": { "type": "integer", "const": 1 },
+    "workflow_id": { "type": "string", "format": "uuid" },
+    "workflow_execution_id": { "type": "string", "format": "uuid" },
+    "workflow_definition_id": { "type": "string", "format": "uuid" },
+    "step_id": { "type": "null" },
+    "step_name": { "type": "null" },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "payload": {
+      "type": "object",
+      "required": ["input", "definition_name", "definition_version"],
+      "properties": {
+        "input": { "type": "object", "description": "Input data submitted with this execution" },
+        "definition_name": { "type": "string" },
+        "definition_version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" }
+      }
+    }
+  }
+}

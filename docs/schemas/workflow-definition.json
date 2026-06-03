@@ -1,0 +1,108 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "workflow-definition",
+  "title": "WorkflowDefinition",
+  "description": "Static specification of a workflow that can be executed by the orchestrator",
+  "type": "object",
+  "required": ["name", "version", "steps"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Persistent identifier generated on creation"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "description": "Human-readable name, unique within a version"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semantic version (MAJOR.MINOR.PATCH)"
+    },
+    "description": {
+      "type": "string",
+      "description": "Free-text description of the workflow"
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/WorkflowStep" },
+      "description": "Ordered list of step definitions (at least 1 required)"
+    },
+    "input_schema": {
+      "oneOf": [
+        { "type": "object" },
+        { "type": "null" }
+      ],
+      "description": "JSON Schema for validating workflow input at submission"
+    },
+    "timeout_seconds": {
+      "oneOf": [
+        { "type": "integer", "minimum": 1 },
+        { "type": "null" }
+      ],
+      "description": "Max total execution time before auto-fail (null = no limit)"
+    },
+    "max_concurrent_executions": {
+      "oneOf": [
+        { "type": "integer", "minimum": 1 },
+        { "type": "null" }
+      ],
+      "description": "Max simultaneous Running instances of this definition"
+    },
+    "tags": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "description": "Arbitrary key-value metadata"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "definitions": {
+    "WorkflowStep": {
+      "type": "object",
+      "required": ["id", "name", "type", "config"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 255 },
+        "name": { "type": "string", "minLength": 1, "maxLength": 255 },
+        "type": { "type": "string", "enum": ["Task", "Decision", "Parallel", "Wait"] },
+        "depends_on": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": []
+        },
+        "timeout_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 300
+        },
+        "retry_policy": {
+          "type": "object",
+          "properties": {
+            "max_attempts": { "type": "integer", "minimum": 1, "default": 1 },
+            "backoff_seconds": { "type": "integer", "minimum": 0, "default": 5 }
+          },
+          "additionalProperties": false
+        },
+        "config": { "type": "object" },
+        "on_success": { "type": "string", "default": "__end__" },
+        "on_failure": { "type": "string", "default": "__fail__" },
+        "description": { "type": "string" },
+        "input_mapping": {
+          "oneOf": [{ "type": "object" }, { "type": "null" }]
+        }
+      }
+    }
+  }
+}
