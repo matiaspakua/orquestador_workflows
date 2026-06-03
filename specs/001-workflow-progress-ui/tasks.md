@@ -33,8 +33,8 @@ description: "Task list for Workflow Progress UI feature — real-time dashboard
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Create workflow service module in `ui/services/workflow_service.py` with module structure, `get_db_connection()` helper (reusing existing psycopg2 pattern from `ui/app.py`), and placeholder for query methods
-- [ ] T002 [P] Add Flask SSE support — create `Response` stream generator and `/api/workflows/stream` route skeleton in `ui/app.py` using `text/event-stream` content type
+- [x] T001 Create workflow service module in `ui/services/workflow_service.py` with module structure, `get_db_connection()` helper (reusing existing psycopg2 pattern from `ui/app.py`), and placeholder for query methods
+- [x] T002 [P] Add Flask SSE support — create `Response` stream generator and `/api/workflows/stream` route skeleton in `ui/app.py` using `text/event-stream` content type
 
 ---
 
@@ -44,9 +44,9 @@ description: "Task list for Workflow Progress UI feature — real-time dashboard
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 `depends_on: T001` Create base Jinja2 template in `ui/templates/base.html` with HTML5 doctype, `lang="es"`, navigation bar, content block, and CSS framework (reuse existing `ui/static/css/style.css` patterns)
-- [ ] T004 [P] Create database migration script in `scripts/init-workflow-db.sql` with `CREATE TABLE IF NOT EXISTS workflow_executions` and `workflow_steps` per data-model.md DDL, including indexes and FK with CASCADE
-- [ ] T005 `depends_on: T001` Implement workflow data access layer in `ui/services/workflow_service.py` with methods: `get_workflow_executions(page, per_page, status, date_from, date_to, search)`, `get_workflow_execution(id)`, `get_workflow_steps(execution_id)`, and `get_workflow_execution_count()` — all using safe parameterized queries
+- [x] T003 `depends_on: T001` Create base Jinja2 template in `ui/templates/base.html` with HTML5 doctype, `lang="es"`, navigation bar, content block, and CSS framework (reuse existing `ui/static/css/style.css` patterns)
+- [x] T004 [P] Create database migration script in `scripts/init-workflow-db.sql` with `CREATE TABLE IF NOT EXISTS workflow_executions` and `workflow_steps` per data-model.md DDL, including indexes and FK with CASCADE
+- [x] T005 `depends_on: T001` Implement workflow data access layer in `ui/services/workflow_service.py` with methods: `get_workflow_executions(page, per_page, status, date_from, date_to, search)`, `get_workflow_execution(id)`, `get_workflow_steps(execution_id)`, and `get_workflow_execution_count()` — all using safe parameterized queries
 
 **Checkpoint**: Foundation ready — user story implementation can now begin in parallel
 
@@ -62,18 +62,18 @@ description: "Task list for Workflow Progress UI feature — real-time dashboard
 
 > **NOTE**: Write these tests FIRST, ensure they FAIL before implementation. Place in `ui/tests/test_workflows.py`.
 
-- [ ] [P] [US1] Flask test client test for `GET /api/workflows` — verify paginated JSON response with expected fields (id, name, status, started_at, duration), status code 200, and `X-Total-Count` header
-- [ ] [P] [US1] Flask test client test for `GET /api/workflows` with `?page=2&per_page=50` — verify offset shifts correctly
-- [ ] [US1] Flask test client test for `GET /api/workflows/stream` — verify SSE response with `text/event-stream` content type and `data: ` formatted output
-- [ ] [US1] Flask test client test for `GET /workflows` — verify rendered HTML contains expected workflow names and status badges
+- [x] [P] [US1] Flask test client test for `GET /api/workflows` — verify paginated JSON response with expected fields (id, name, status, started_at, duration), status code 200, and `X-Total-Count` header
+- [x] [P] [US1] Flask test client test for `GET /api/workflows` with `?page=2&per_page=50` — verify offset shifts correctly
+- [x] [US1] Flask test client test for `GET /api/workflows/stream` — verify SSE response with `text/event-stream` content type and `data: ` formatted output
+- [x] [US1] Flask test client test for `GET /workflows` — verify rendered HTML contains expected workflow names and status badges
 
 ### Implementation for User Story 1
 
-- [ ] T006 [P] [US1] `depends_on: T005` Implement workflow list route `GET /workflows` in `ui/app.py` that queries `workflow_service.get_workflow_executions()` with page/per_page parameters (default 50) and renders `workflow_list.html`
-- [ ] T007 [P] [US1] `depends_on: T003` Create workflow list template in `ui/templates/workflow_list.html` extending `base.html` — show table with columns: status badge (color-coded: Pending=gray, Running=blue, Completed=green, Failed=red), workflow name (linked to detail), start time, duration; empty state when no executions
-- [ ] T008 [US1] `depends_on: T002, T005` Implement SSE endpoint `GET /api/workflows/stream` in `ui/app.py` that queries recent status changes and yields `event: status_update\ndata: {json}\n\n` per SSE protocol; handle client disconnect with generator cleanup
-- [ ] T009 [US1] `depends_on: T007, T008` Add client-side SSE listener in `ui/templates/workflow_list.html` using `EventSource('/api/workflows/stream')` with `onmessage` handler that updates status badges client-side; fallback to polling via `setInterval(fetch, 10000)` on `EventSource.onerror`
-- [ ] T010 [US1] `depends_on: T006, T007` Add pagination controls in `ui/templates/workflow_list.html` (Previous/Next buttons, page indicator) and URL parameter handling (`?page=N`) in `ui/app.py` workflow list route
+- [x] T006 [P] [US1] `depends_on: T005` Implement workflow list route `GET /workflows` in `ui/app.py` that queries `workflow_service.get_workflow_executions()` with page/per_page parameters (default 50) and renders `workflow_list.html`
+- [x] T007 [P] [US1] `depends_on: T003` Create workflow list template in `ui/templates/workflow_list.html` extending `base.html` — show table with columns: status badge (color-coded: Pending=gray, Running=blue, Completed=green, Failed=red), workflow name (linked to detail), start time, duration; empty state when no executions
+- [x] T008 [US1] `depends_on: T002, T005` Implement SSE endpoint `GET /api/workflows/stream` in `ui/app.py` that queries recent status changes and yields `event: status_update\ndata: {json}\n\n` per SSE protocol; handle client disconnect with generator cleanup
+- [x] T009 [US1] `depends_on: T007, T008` Add client-side SSE listener in `ui/templates/workflow_list.html` using `EventSource('/api/workflows/stream')` with `onmessage` handler that updates status badges client-side; fallback to polling via `setInterval(fetch, 10000)` on `EventSource.onerror`
+- [x] T010 [US1] `depends_on: T006, T007` Add pagination controls in `ui/templates/workflow_list.html` (Previous/Next buttons, page indicator) and URL parameter handling (`?page=N`) in `ui/app.py` workflow list route
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
 
@@ -89,17 +89,17 @@ description: "Task list for Workflow Progress UI feature — real-time dashboard
 
 > **NOTE**: Write these tests FIRST, ensure they FAIL before implementation. Place in `ui/tests/test_workflows.py`.
 
-- [ ] [P] [US2] Flask test client test for `GET /api/workflows/<id>` — verify JSON response includes execution fields and nested `steps[]` array ordered by `sequence_order`
-- [ ] [P] [US2] Flask test client test for `GET /workflows/<id>` — verify rendered HTML contains step names and status badges
-- [ ] [US2] Flask test client test for `GET /workflows/<id>` with failed step — verify error message text appears in rendered HTML
-- [ ] [US2] Flask test client test for `GET /workflows/<id>` with no steps — verify "Esperando que comience la ejecución" message appears
+- [x] [P] [US2] Flask test client test for `GET /api/workflows/<id>` — verify JSON response includes execution fields and nested `steps[]` array ordered by `sequence_order`
+- [x] [P] [US2] Flask test client test for `GET /workflows/<id>` — verify rendered HTML contains step names and status badges
+- [x] [US2] Flask test client test for `GET /workflows/<id>` with failed step — verify error message text appears in rendered HTML
+- [x] [US2] Flask test client test for `GET /workflows/<id>` with no steps — verify "Esperando que comience la ejecución" message appears
 
 ### Implementation for User Story 2
 
-- [ ] T011 [P] [US2] `depends_on: T005` Implement workflow detail route `GET /workflows/<id>` in `ui/app.py` that loads workflow execution via `get_workflow_execution(id)` and steps via `get_workflow_steps(id)`, then renders `workflow_detail.html`
-- [ ] T012 [P] [US2] `depends_on: T003` Create workflow detail template in `ui/templates/workflow_detail.html` extending `base.html` — show execution summary header (name, status badge, timestamps, duration) and ordered step list with columns: sequence number, step name, step type badge, status badge (with Failed highlighted in red), duration, error message if present
-- [ ] T013 [US2] `depends_on: T012` Add error message display for failed steps in `ui/templates/workflow_detail.html` — expandable/collapsible error detail section per failed step, red highlighted status badge, distinct visual treatment for Failed vs Skipped vs Completed vs Running vs Pending
-- [ ] T014 [US2] `depends_on: T012` Add empty state handling in `ui/templates/workflow_detail.html` — when steps array is empty, display centered message "Esperando que comience la ejecución" with a subtle spinner animation; hide step table
+- [x] T011 [P] [US2] `depends_on: T005` Implement workflow detail route `GET /workflows/<id>` in `ui/app.py` that loads workflow execution via `get_workflow_execution(id)` and steps via `get_workflow_steps(id)`, then renders `workflow_detail.html`
+- [x] T012 [P] [US2] `depends_on: T003` Create workflow detail template in `ui/templates/workflow_detail.html` extending `base.html` — show execution summary header (name, status badge, timestamps, duration) and ordered step list with columns: sequence number, step name, step type badge, status badge (with Failed highlighted in red), duration, error message if present
+- [x] T013 [US2] `depends_on: T012` Add error message display for failed steps in `ui/templates/workflow_detail.html` — expandable/collapsible error detail section per failed step, red highlighted status badge, distinct visual treatment for Failed vs Skipped vs Completed vs Running vs Pending
+- [x] T014 [US2] `depends_on: T012` Add empty state handling in `ui/templates/workflow_detail.html` — when steps array is empty, display centered message "Esperando que comience la ejecución" with a subtle spinner animation; hide step table
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently
 
@@ -115,17 +115,17 @@ description: "Task list for Workflow Progress UI feature — real-time dashboard
 
 > **NOTE**: Write these tests FIRST, ensure they FAIL before implementation. Place in `ui/tests/test_workflows.py`.
 
-- [ ] [P] [US3] Flask test client test for `GET /api/workflows?status=Failed` — verify only failed workflows returned
-- [ ] [P] [US3] Flask test client test for `GET /api/workflows?date_from=2026-01-01&date_to=2026-06-01` — verify only executions within range
-- [ ] [P] [US3] Flask test client test for `GET /api/workflows?search=test-workflow` — verify name/identifier matches
-- [ ] [US3] Flask test client test for combined filters `?status=Running&search=etl&date_from=2026-05-01` — verify intersection
+- [x] [P] [US3] Flask test client test for `GET /api/workflows?status=Failed` — verify only failed workflows returned
+- [x] [P] [US3] Flask test client test for `GET /api/workflows?date_from=2026-01-01&date_to=2026-06-01` — verify only executions within range
+- [x] [P] [US3] Flask test client test for `GET /api/workflows?search=test-workflow` — verify name/identifier matches
+- [x] [US3] Flask test client test for combined filters `?status=Running&search=etl&date_from=2026-05-01` — verify intersection
 
 ### Implementation for User Story 3
 
-- [ ] T015 [P] [US3] `depends_on: T006` Add `status` query parameter to workflow list route in `ui/app.py` — pass to `get_workflow_executions(status=...)`; accept Pending, Running, Completed, Failed; validate against enum
-- [ ] T016 [P] [US3] `depends_on: T006` Add `date_from` and `date_to` query parameters to workflow list route in `ui/app.py` — pass to `get_workflow_executions(date_from=..., date_to=...)`; parse ISO date strings; return 400 on invalid format
-- [ ] T017 [P] [US3] `depends_on: T006` Add `search` query parameter to workflow list route in `ui/app.py` — pass to `get_workflow_executions(search=...)`; use `ILIKE` on `name` column; min 2 characters
-- [ ] T018 [US3] `depends_on: T007` Create filter form in `ui/templates/workflow_list.html` above the workflow table — status dropdown (all/Pending/Running/Completed/Failed), date range inputs (date_from, date_to with `type="date"`), search text input with placeholder "Buscar por nombre..."; form uses GET to preserve filter state in URL; clear filters link
+- [x] T015 [P] [US3] `depends_on: T006` Add `status` query parameter to workflow list route in `ui/app.py` — pass to `get_workflow_executions(status=...)`; accept Pending, Running, Completed, Failed; validate against enum
+- [x] T016 [P] [US3] `depends_on: T006` Add `date_from` and `date_to` query parameters to workflow list route in `ui/app.py` — pass to `get_workflow_executions(date_from=..., date_to=...)`; parse ISO date strings; return 400 on invalid format
+- [x] T017 [P] [US3] `depends_on: T006` Add `search` query parameter to workflow list route in `ui/app.py` — pass to `get_workflow_executions(search=...)`; use `ILIKE` on `name` column; min 2 characters
+- [x] T018 [US3] `depends_on: T007` Create filter form in `ui/templates/workflow_list.html` above the workflow table — status dropdown (all/Pending/Running/Completed/Failed), date range inputs (date_from, date_to with `type="date"`), search text input with placeholder "Buscar por nombre..."; form uses GET to preserve filter state in URL; clear filters link
 
 **Checkpoint**: All user stories should now be independently functional
 
