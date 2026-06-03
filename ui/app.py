@@ -2,6 +2,7 @@ import os
 import json
 import time
 import psycopg2
+from psycopg2 import OperationalError as PgOperationalError
 from datetime import datetime, timedelta
 from flask import Flask, render_template, jsonify, request, Response, stream_with_context
 
@@ -220,9 +221,14 @@ def workflow_list():
         search=search or None,
     )
 
+    db_error = False
     try:
         executions = workflow_service.get_workflow_executions(page=page, per_page=PER_PAGE, **filters)
         total = workflow_service.get_workflow_execution_count(**filters)
+    except PgOperationalError:
+        executions = []
+        total = 0
+        db_error = True
     except Exception:
         executions = []
         total = 0
@@ -239,6 +245,7 @@ def workflow_list():
         date_from=date_from,
         date_to=date_to,
         search=search,
+        db_error=db_error,
     )
 
 
@@ -247,6 +254,8 @@ def workflow_detail(execution_id):
     try:
         execution = workflow_service.get_workflow_execution(execution_id)
         steps = workflow_service.get_workflow_steps(execution_id) if execution else []
+    except PgOperationalError:
+        return render_template('workflow_detail.html', execution=None, steps=[], db_error=True), 503
     except Exception:
         execution = None
         steps = []
@@ -254,7 +263,7 @@ def workflow_detail(execution_id):
     if execution is None:
         return render_template('workflow_detail.html', execution=None, steps=[]), 404
 
-    return render_template('workflow_detail.html', execution=execution, steps=steps)
+    return render_template('workflow_detail.html', execution=execution, steps=steps, db_error=False)
 
 
 @app.route('/api/workflows')
@@ -270,7 +279,9 @@ def api_workflow_list():
     try:
         executions = workflow_service.get_workflow_executions(page=page, per_page=per_page, **filters)
         total = workflow_service.get_workflow_execution_count(**filters)
-    except Exception as e:
+    except PgOperationalError:
+        return jsonify({'error': 'base_datos_no_disponible', 'message': 'No se pudo conectar con la base de datos'}), 503
+    except Exception:
         return jsonify({'error': 'Error al consultar ejecuciones'}), 500
 
     response = jsonify({'executions': executions, 'total': total, 'page': page, 'per_page': per_page})
@@ -286,6 +297,8 @@ def api_workflow_detail(execution_id):
             return jsonify({'error': 'No encontrado'}), 404
         steps = workflow_service.get_workflow_steps(execution_id)
         return jsonify({'execution': execution, 'steps': steps})
+    except PgOperationalError:
+        return jsonify({'error': 'base_datos_no_disponible', 'message': 'No se pudo conectar con la base de datos'}), 503
     except Exception:
         return jsonify({'error': 'Error al consultar detalle'}), 500
 

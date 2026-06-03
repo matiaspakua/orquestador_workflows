@@ -135,11 +135,11 @@ description: "Task list for Workflow Progress UI feature — real-time dashboard
 
 **Purpose**: Edge case handling, error states, infrastructure configuration, and validation
 
-- [ ] T019 `depends_on: T003` Add disconnected state UI in `ui/templates/base.html` — banner across top of page "Orquestador desconectado — Verifique el estado del sistema" shown when SSE/polling detects no heartbeat for >30s; hidden by default, shown via JS class toggle
-- [ ] T020 `depends_on: T007` Add stale data indicator in `ui/templates/workflow_list.html` — subtle warning bar "Eventos no disponibles — usando modo polling" with icon when SSE `onerror` fires and polling fallback activates; auto-dismiss on SSE reconnect
-- [ ] T021 [P] `depends_on: T002` Add error boundary for orchestrator connection failures in `ui/app.py` — catch `psycopg2.OperationalError` in workflow routes, return 503 with JSON `{"error": "base_datos_no_disponible", "message": "No se pudo conectar con la base de datos"}` and render degraded template state
-- [ ] T022 `depends_on: T004` Update `docker-compose.yml` with `WEB_UI` environment variables for database connection (POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD) if not already present; add workflow service to health check
-- [ ] T023 `depends_on: T019, T020, T021, T022` Run quickstart.md validation — start fresh Docker Compose environment, verify `/workflows` loads, `/workflows/<id>` loads, SSE stream returns events, filter form submits correctly, disconnected state appears when postgres is stopped; add any missing instructions to quickstart.md
+- [x] T019 `depends_on: T003` Add disconnected state UI in `ui/templates/base.html` — banner across top of page "Orquestador desconectado — Verifique el estado del sistema" shown when SSE/polling detects no heartbeat for >30s; hidden by default, shown via JS class toggle
+- [x] T020 `depends_on: T007` Add stale data indicator in `ui/templates/workflow_list.html` — subtle warning bar "Eventos no disponibles — usando modo polling" with icon when SSE `onerror` fires and polling fallback activates; auto-dismiss on SSE reconnect
+- [x] T021 [P] `depends_on: T002` Add error boundary for orchestrator connection failures in `ui/app.py` — catch `psycopg2.OperationalError` in workflow routes, return 503 with JSON `{"error": "base_datos_no_disponible", "message": "No se pudo conectar con la base de datos"}` and render degraded template state
+- [x] T022 `depends_on: T004` Update `docker-compose.yml` with `WEB_UI` environment variables for database connection (POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD) if not already present; add workflow service to health check
+- [x] T023 `depends_on: T019, T020, T021, T022` Run quickstart.md validation — start fresh Docker Compose environment, verify `/workflows` loads, `/workflows/<id>` loads, SSE stream returns events, filter form submits correctly, disconnected state appears when postgres is stopped; add any missing instructions to quickstart.md
 
 ---
 

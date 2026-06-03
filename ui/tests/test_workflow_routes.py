@@ -4,6 +4,7 @@ All DB calls are mocked so no database is required.
 """
 import json
 from unittest.mock import patch
+from psycopg2 import OperationalError as PgOperationalError
 from .conftest import EXEC_LIST, EXEC_DETAIL, STEPS
 
 
@@ -157,3 +158,36 @@ class TestWorkflowStream:
             except StopIteration:
                 pass
             # Flask returns the response object even if generator raises
+
+
+# ── T021: 503 error boundary for psycopg2.OperationalError ───────────────────
+
+class TestDbErrorBoundary:
+    def test_api_workflows_503_on_operational_error(self, client):
+        with patch('app.workflow_service.get_workflow_executions', side_effect=PgOperationalError('db down')):
+            r = client.get('/api/workflows')
+        assert r.status_code == 503
+        data = json.loads(r.data)
+        assert data['error'] == 'base_datos_no_disponible'
+
+    def test_api_workflow_detail_503_on_operational_error(self, client):
+        with patch('app.workflow_service.get_workflow_execution', side_effect=PgOperationalError('db down')):
+            r = client.get('/api/workflows/aaaa-0000')
+        assert r.status_code == 503
+        data = json.loads(r.data)
+        assert data['error'] == 'base_datos_no_disponible'
+        assert 'message' in data
+
+    def test_html_workflow_list_degrades_gracefully_on_operational_error(self, client):
+        with patch('app.workflow_service.get_workflow_executions', side_effect=PgOperationalError('db down')), \
+             patch('app.workflow_service.get_workflow_execution_count', side_effect=PgOperationalError('db down')):
+            r = client.get('/workflows')
+        # Must render (not crash), showing the db error banner
+        assert r.status_code == 200
+        assert 'base de datos'.encode() in r.data
+
+    def test_html_workflow_detail_503_on_operational_error(self, client):
+        with patch('app.workflow_service.get_workflow_execution', side_effect=PgOperationalError('db down')):
+            r = client.get('/workflows/aaaa-0000')
+        assert r.status_code == 503
+        assert 'base de datos'.encode() in r.data

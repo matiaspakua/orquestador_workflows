@@ -1,5 +1,40 @@
 # Quickstart: Workflow Progress UI
 
+## Validation Checklist (T023)
+
+Run this after a fresh `docker compose up` to confirm the feature is fully operational:
+
+```bash
+# 1. All containers healthy
+docker compose ps
+
+# 2. Workflow tables created automatically
+docker compose exec postgres psql -U $POSTGRES_USER -d $POSTGRES_DB \
+  -c "\dt workflow_*"
+
+# 3. List page renders
+curl -s -o /dev/null -w "%{http_code}" http://localhost:5000/workflows
+# Expected: 200
+
+# 4. API returns JSON
+curl -s http://localhost:5000/api/workflows | python3 -m json.tool
+
+# 5. SSE stream responds
+curl -s --max-time 3 http://localhost:5000/api/workflows/stream
+# Expected: one "event: status_update" line
+
+# 6. Filter by status
+curl -s "http://localhost:5000/api/workflows?status=Running" | python3 -m json.tool
+
+# 7. Disconnected state — stop postgres, wait 30 s, open /workflows
+#    Expected: orange "Orquestador desconectado" banner appears
+docker compose stop postgres
+# wait 30 seconds, open http://localhost:5000/workflows
+docker compose start postgres
+```
+
+---
+
 ## Access the Dashboard
 
 ```

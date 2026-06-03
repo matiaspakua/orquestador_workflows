@@ -5,6 +5,13 @@
 <div class="card">
     <h2>Ejecuciones de Workflows</h2>
 
+    <!-- T021: DB error boundary -->
+    {% if db_error %}
+    <div class="alert alert-warning" style="margin-bottom:1rem">
+        &#9888; No se pudo conectar con la base de datos. Mostrando datos incompletos &mdash; reintente en unos segundos.
+    </div>
+    {% endif %}
+
     <!-- Filter bar -->
     <form method="get" action="/workflows">
         <div class="filter-bar">
@@ -98,39 +105,42 @@
     {% endif %}
 </div>
 
-<!-- Disconnected banner (hidden by default, shown by JS) -->
-<div id="disconnected-banner" class="alert alert-warning" style="display:none">
-    El orquestador parece desconectado. Actualizando en modo polling cada 10 s.
+<!-- T020: Stale data indicator — shown when SSE fails, polling mode active -->
+<div id="polling-banner" class="alert alert-warning" style="display:none;margin-top:0.5rem">
+    &#128268; Eventos no disponibles &mdash; usando modo polling cada 10 s.
+    <a href="/workflows" style="margin-left:0.75rem;color:#744210;font-weight:600">Recargar</a>
 </div>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
 (function () {
-    const dot = document.getElementById('sse-dot');
-    const label = document.getElementById('sse-label');
-    const banner = document.getElementById('disconnected-banner');
+    var dot = document.getElementById('sse-dot');
+    var sseLabel = document.getElementById('sse-label');
+    var pollingBanner = document.getElementById('polling-banner');
+
+    var STATUS_MAP = {
+        Pending:   ['badge-pending',   'Pendiente'],
+        Running:   ['badge-running',   'Ejecutando'],
+        Completed: ['badge-completed', 'Completado'],
+        Failed:    ['badge-failed',    'Fallido'],
+    };
 
     function updateBadge(id, status) {
-        const el = document.getElementById('status-' + id);
+        var el = document.getElementById('status-' + id);
         if (!el) return;
-        const map = {
-            Pending: ['badge-pending', 'Pendiente'],
-            Running: ['badge-running', 'Ejecutando'],
-            Completed: ['badge-completed', 'Completado'],
-            Failed: ['badge-failed', 'Fallido'],
-        };
-        const [cls, label] = map[status] || ['badge-pending', status];
-        el.className = 'badge ' + cls;
-        el.textContent = label;
+        var entry = STATUS_MAP[status] || ['badge-pending', status];
+        el.className = 'badge ' + entry[0];
+        el.textContent = entry[1];
     }
 
     function handleUpdate(rows) {
         rows.forEach(function (row) { updateBadge(row.id, row.status); });
+        if (window.heartbeat) window.heartbeat(); // T019: reset the 30s disconnected watchdog
     }
 
-    // SSE connection
-    let es;
+    // SSE connection with auto-reconnect
+    var es;
     function connectSSE() {
         es = new EventSource('/api/workflows/stream');
 
@@ -140,30 +150,33 @@
 
         es.onopen = function () {
             dot.className = 'dot';
-            label.textContent = 'En vivo';
-            banner.style.display = 'none';
+            sseLabel.textContent = 'En vivo';
+            pollingBanner.style.display = 'none'; // T020: dismiss stale banner on reconnect
         };
 
         es.onerror = function () {
             dot.className = 'dot polling';
-            label.textContent = 'Polling';
-            banner.style.display = 'block';
+            sseLabel.textContent = 'Polling';
+            pollingBanner.style.display = 'block'; // T020: show stale data indicator
             es.close();
             startPolling();
         };
     }
 
-    // Polling fallback
-    let pollTimer;
+    // Polling fallback (T020)
+    var pollTimer;
     function startPolling() {
         clearInterval(pollTimer);
         pollTimer = setInterval(function () {
             fetch('/api/workflows')
                 .then(function (r) { return r.json(); })
-                .then(function (data) { handleUpdate(data.executions || []); })
+                .then(function (data) {
+                    handleUpdate(data.executions || []);
+                })
                 .catch(function () {
                     dot.className = 'dot disconnected';
-                    label.textContent = 'Desconectado';
+                    sseLabel.textContent = 'Desconectado';
+                    // heartbeat NOT called → orchestrator banner will appear after 30 s (T019)
                 });
         }, 10000);
     }

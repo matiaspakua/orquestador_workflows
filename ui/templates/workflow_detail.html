@@ -2,7 +2,13 @@
 {% block title %}Detalle{% endblock %}
 
 {% block content %}
-{% if execution is none %}
+{% if db_error is defined and db_error %}
+<div class="alert alert-warning">
+    &#9888; No se pudo conectar con la base de datos. Verifique el estado del sistema e intente nuevamente.
+    <a href="/workflows" style="margin-left:0.75rem;color:#744210;font-weight:600">Volver al listado</a>
+</div>
+
+{% elif execution is none %}
 <div class="card">
     <div class="empty-state">
         <p><strong>Ejecución no encontrada</strong></p>

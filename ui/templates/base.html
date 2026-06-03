@@ -172,6 +172,17 @@
 
         .dot.polling { background: #f6e05e; }
         .dot.disconnected { background: #fc8181; }
+
+        /* Global disconnected banner (T019) */
+        #orchestrator-banner {
+            display: none;
+            background: #fff5f5;
+            border-bottom: 3px solid #fc8181;
+            color: #742a2a;
+            padding: 0.6rem 2rem;
+            font-size: 0.875rem;
+            text-align: center;
+        }
     </style>
     {% block extra_styles %}{% endblock %}
 </head>
@@ -188,10 +199,36 @@
     </div>
 </header>
 
+<!-- T019: Global disconnected banner — shown after 30 s with no backend heartbeat -->
+<div id="orchestrator-banner">
+    &#9888; Orquestador desconectado &mdash; Verifique el estado del sistema
+</div>
+
 <main class="main">
     {% block content %}{% endblock %}
 </main>
 
 {% block extra_scripts %}{% endblock %}
+
+<script>
+/* T019: heartbeat watchdog — shows the global banner after 30 s of silence */
+(function () {
+    var TIMEOUT_MS = 30000;
+    var banner = document.getElementById('orchestrator-banner');
+    var timer;
+
+    function resetTimer() {
+        clearTimeout(timer);
+        banner.style.display = 'none';
+        timer = setTimeout(function () {
+            banner.style.display = 'block';
+        }, TIMEOUT_MS);
+    }
+
+    // Expose globally so page-level SSE/polling scripts can call it
+    window.heartbeat = resetTimer;
+    resetTimer(); // start the clock immediately
+})();
+</script>
 </body>
 </html>
