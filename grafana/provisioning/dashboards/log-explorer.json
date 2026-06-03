@@ -1,0 +1,72 @@
+{
+  "title": "Log Explorer",
+  "uid": "log-explorer",
+  "version": 1,
+  "schemaVersion": 38,
+  "refresh": "10s",
+  "time": { "from": "now-15m", "to": "now" },
+  "timepicker": { "refresh_intervals": ["5s","10s","30s","1m","5m","15m","1h","24h"] },
+  "templating": {
+    "list": [
+      {
+        "name": "container",
+        "label": "Container",
+        "type": "custom",
+        "options": [
+          { "text": "All",         "value": ".+" },
+          { "text": "producer",    "value": "producer" },
+          { "text": "consumer1",   "value": "consumer1" },
+          { "text": "consumer2",   "value": "consumer2" },
+          { "text": "web-ui",      "value": "web-ui" },
+          { "text": "kafka",       "value": "kafka" }
+        ],
+        "current": { "text": "All", "value": ".+" }
+      },
+      {
+        "name": "level",
+        "label": "Level",
+        "type": "custom",
+        "options": [
+          { "text": "All",     "value": ".+" },
+          { "text": "DEBUG",   "value": "DEBUG" },
+          { "text": "INFO",    "value": "INFO" },
+          { "text": "WARNING", "value": "WARNING" },
+          { "text": "ERROR",   "value": "ERROR" }
+        ],
+        "current": { "text": "All", "value": ".+" }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Log Stream",
+      "type": "logs",
+      "gridPos": { "x": 0, "y": 0, "w": 24, "h": 20 },
+      "targets": [{
+        "expr": "{container=~\"$container\"} | json | level=~\"$level\"",
+        "datasource": "Loki",
+        "legendFormat": ""
+      }],
+      "options": {
+        "dedupStrategy": "none",
+        "showLabels": true,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      }
+    },
+    {
+      "id": 2,
+      "title": "Log Rate by Container",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 20, "w": 24, "h": 6 },
+      "targets": [{
+        "expr": "sum by (container) (rate({container=~\"$container\"}[1m]))",
+        "datasource": "Loki",
+        "legendFormat": "{{container}}"
+      }],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    }
+  ]
+}

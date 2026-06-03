@@ -1,0 +1,69 @@
+{
+  "title": "Container Resources",
+  "uid": "container-resources",
+  "version": 1,
+  "schemaVersion": 38,
+  "refresh": "15s",
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": { "refresh_intervals": ["5s","10s","30s","1m","5m","15m","1h","24h"] },
+  "panels": [
+    {
+      "id": 1,
+      "title": "CPU Usage % per Container (5m avg)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "targets": [{ "expr": "container_cpu_usage_percent", "legendFormat": "{{container}}" }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "nullValueMode": "null",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": 0 }, { "color": "yellow", "value": 80 }, { "color": "red", "value": 90 }] }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "Memory Usage % per Container (5m avg)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+      "targets": [{ "expr": "container_memory_usage_percent", "legendFormat": "{{container}}" }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "nullValueMode": "null",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": 0 }, { "color": "yellow", "value": 80 }, { "color": "red", "value": 90 }] }
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "Disk Read/Write per Container",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 16, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "container_disk_read_bytes_total",  "legendFormat": "{{container}} read" },
+        { "expr": "container_disk_write_bytes_total", "legendFormat": "{{container}} write" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "Bps", "nullValueMode": "null" } }
+    },
+    {
+      "id": 4,
+      "title": "Network RX/TX per Container",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 24, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "container_network_rx_bytes_total", "legendFormat": "{{container}} rx" },
+        { "expr": "container_network_tx_bytes_total", "legendFormat": "{{container}} tx" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "Bps", "nullValueMode": "null" } }
+    },
+    {
+      "id": 5,
+      "title": "Container Restarts",
+      "type": "stat",
+      "gridPos": { "x": 0, "y": 32, "w": 12, "h": 4 },
+      "targets": [{ "expr": "sum by (container) (container_restart_indicator)", "legendFormat": "{{container}}" }],
+      "fieldConfig": { "defaults": { "unit": "short", "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": 0 }, { "color": "red", "value": 1 }] } } }
+    }
+  ]
+}

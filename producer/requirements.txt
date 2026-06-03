@@ -2,3 +2,8 @@ psycopg2-binary==2.9.9
 faker==22.6.0
 kafka-python==2.0.2
 python-json-logger==2.0.7
+prometheus_client==0.20.0
+
+# Test dependencies (feature 005-producer-consumer-test, T002)
+pytest==8.0.0
+pytest-timeout==2.2.0

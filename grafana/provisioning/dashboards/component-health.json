@@ -1,0 +1,86 @@
+{
+  "title": "Component Health",
+  "uid": "component-health",
+  "version": 1,
+  "schemaVersion": 38,
+  "refresh": "5s",
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": { "refresh_intervals": ["5s","10s","30s","1m","5m","15m","1h"] },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Producer Health",
+      "type": "stat",
+      "gridPos": { "x": 0, "y": 0, "w": 4, "h": 4 },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "options": { "0": { "text": "Unhealthy", "color": "red" }, "1": { "text": "Healthy", "color": "green" } }, "type": "value" }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": 0 }, { "color": "green", "value": 1 }] }
+        }
+      },
+      "targets": [{ "expr": "health_status{component=\"producer\"}", "legendFormat": "Producer" }]
+    },
+    {
+      "id": 2,
+      "title": "Consumer-1 Health",
+      "type": "stat",
+      "gridPos": { "x": 4, "y": 0, "w": 4, "h": 4 },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "options": { "0": { "text": "Unhealthy", "color": "red" }, "1": { "text": "Healthy", "color": "green" } }, "type": "value" }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": 0 }, { "color": "green", "value": 1 }] }
+        }
+      },
+      "targets": [{ "expr": "health_status{component=\"consumer-1\"}", "legendFormat": "Consumer-1" }]
+    },
+    {
+      "id": 3,
+      "title": "Consumer-2 Health",
+      "type": "stat",
+      "gridPos": { "x": 8, "y": 0, "w": 4, "h": 4 },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "options": { "0": { "text": "Unhealthy", "color": "red" }, "1": { "text": "Healthy", "color": "green" } }, "type": "value" }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": 0 }, { "color": "green", "value": 1 }] }
+        }
+      },
+      "targets": [{ "expr": "health_status{component=\"consumer-2\"}", "legendFormat": "Consumer-2" }]
+    },
+    {
+      "id": 4,
+      "title": "Messages Published (total)",
+      "type": "stat",
+      "gridPos": { "x": 0, "y": 4, "w": 6, "h": 4 },
+      "targets": [{ "expr": "sum(messages_published_total)", "legendFormat": "Total" }]
+    },
+    {
+      "id": 5,
+      "title": "Messages Consumed (total)",
+      "type": "stat",
+      "gridPos": { "x": 6, "y": 4, "w": 6, "h": 4 },
+      "targets": [{ "expr": "sum(messages_consumed_total)", "legendFormat": "Total" }]
+    },
+    {
+      "id": 6,
+      "title": "Publish Rate (msg/s)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 8, "w": 12, "h": 6 },
+      "targets": [{ "expr": "messages_publish_rate", "legendFormat": "{{topic}}" }],
+      "fieldConfig": { "defaults": { "unit": "reqps", "nullValueMode": "null" } }
+    },
+    {
+      "id": 7,
+      "title": "Errors",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 14, "w": 12, "h": 6 },
+      "targets": [{ "expr": "rate(errors_total[5m])", "legendFormat": "{{type}} / {{component}}" }],
+      "fieldConfig": { "defaults": { "unit": "short", "nullValueMode": "null" } }
+    }
+  ]
+}

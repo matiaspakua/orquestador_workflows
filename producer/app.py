@@ -3,12 +3,27 @@ import json
 import time
 import uuid
 import logging
+import threading
 import psycopg2
 from datetime import datetime
 from faker import Faker
 from kafka import KafkaProducer
 from kafka.errors import KafkaError
 from pythonjsonlogger.json import JsonFormatter
+from prometheus_client import (
+    start_http_server, Counter, Gauge, Histogram, Info,
+)
+
+# ── Prometheus metrics (feature 002) ─────────────────────────────────────────
+MESSAGES_PUBLISHED   = Counter('messages_published_total',   'Total Kafka messages published', ['topic'])
+PUBLISH_ERRORS       = Counter('errors_total',               'Total publish errors',           ['type'])
+HEALTH_STATUS        = Gauge(  'health_status',              '1=healthy 0=unhealthy',          ['component'])
+COMPONENT_INFO       = Info(   'component',                  'Static component metadata')
+WORKFLOW_EXECUTIONS  = Counter('workflow_executions_total',  'Workflow executions by name and status', ['workflow_name', 'status'])
+WORKFLOW_RUNNING     = Gauge(  'workflow_running',           'Currently running workflow executions')
+WORKFLOW_DURATION    = Histogram('workflow_duration_seconds','Workflow execution duration in seconds',
+                                 buckets=[1, 5, 10, 30, 60, 120, 300, 600])
+MESSAGES_PUBLISH_RATE = Gauge('messages_publish_rate',      'Recent publish rate (msg/s)', ['topic'])
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -21,8 +36,13 @@ class EventProducer:
         self.fake = Faker()
         self.kafka_producer = None
         self.db_connection = None
+        self._published_in_window = 0
+        self._window_start = time.monotonic()
+        COMPONENT_INFO.info({'name': 'producer', 'version': '1.0.0'})
+        HEALTH_STATUS.labels(component='producer').set(0)
         self.setup_kafka()
         self.setup_database()
+        HEALTH_STATUS.labels(component='producer').set(1)
         
     def setup_kafka(self):
         """Configura la conexión a Kafka"""
@@ -161,19 +181,34 @@ class EventProducer:
             # Esperar confirmación
             record_metadata = future.get(timeout=10)
             
+            topic = record_metadata.topic
+            MESSAGES_PUBLISHED.labels(topic=topic).inc()
+            self._published_in_window += 1
+
+            # Update rolling publish rate every 10 messages or 10 s
+            elapsed = time.monotonic() - self._window_start
+            if elapsed >= 10 or self._published_in_window >= 10:
+                rate = self._published_in_window / max(elapsed, 1)
+                MESSAGES_PUBLISH_RATE.labels(topic=topic).set(rate)
+                self._published_in_window = 0
+                self._window_start = time.monotonic()
+
             logger.info({
                 'action': 'event_published',
                 'event_id': event_message['event_id'],
                 'event_type': data_type,
                 'data_reference_id': data_reference_id,
-                'kafka_topic': record_metadata.topic,
+                'kafka_topic': topic,
                 'kafka_partition': record_metadata.partition,
                 'kafka_offset': record_metadata.offset
             })
-            
+
         except KafkaError as e:
+            PUBLISH_ERRORS.labels(type='kafka').inc()
+            HEALTH_STATUS.labels(component='producer').set(0)
             logger.error(f"Error publicando evento en Kafka: {e}")
         except Exception as e:
+            PUBLISH_ERRORS.labels(type='general').inc()
             logger.error(f"Error general publicando evento: {e}")
 
     def run(self):
@@ -204,5 +239,8 @@ class EventProducer:
                 self.db_connection.close()
 
 if __name__ == "__main__":
+    metrics_port = int(os.getenv('METRICS_PORT', 8000))
+    start_http_server(metrics_port)
+    logger.info(f"Prometheus metrics server started on port {metrics_port}")
     producer = EventProducer()
     producer.run()
