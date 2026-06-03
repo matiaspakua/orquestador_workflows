@@ -1,0 +1,125 @@
+# Integration test overlay for feature 005-producer-consumer-test.
+#
+# Provides an ISOLATED stack (separate network, dedicated volumes, distinct
+# container names) so test runs never touch development/production topics or
+# data. Tests publish to topics prefixed with `test.` per
+# specs/005-producer-consumer-test/contracts/message-contract.md.
+#
+# Usage:
+#   docker-compose -f docker-compose.test.yml up --build          # full suite
+#   docker-compose -f docker-compose.test.yml run --rm test-runner pytest producer/tests/integration -v
+#
+# Resource limits (T022) mirror the main compose file per Constitution
+# Principle IV (Performance Requirements).
+
+services:
+  postgres-test:
+    image: postgres:15-alpine
+    container_name: test-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-eventuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-eventpass}
+      POSTGRES_DB: ${POSTGRES_DB:-eventdb}
+    volumes:
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-eventuser}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+
+  zookeeper-test:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: test-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - test-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+  kafka-test:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: test-kafka
+    depends_on:
+      - zookeeper-test
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper-test:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-test:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      # Keep the default 1 MiB ceiling explicit so the large-payload test (T025)
+      # has a known boundary to probe.
+      KAFKA_MESSAGE_MAX_BYTES: 1048576
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--list", "--bootstrap-server", "localhost:9092"]
+      interval: 5s
+      timeout: 10s
+      retries: 15
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+
+  # Single test runner that executes the pytest integration suite across both
+  # the producer and consumer test trees. Mounts the repo so it can drive the
+  # Docker CLI for failure-injection tests (stop/start kafka-test, consumer).
+  test-runner:
+    build:
+      context: .
+      dockerfile: scripts/test/Dockerfile.test-runner
+    container_name: test-runner
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      kafka-test:
+        condition: service_healthy
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka-test:29092
+      KAFKA_CONTAINER: test-kafka
+      CONSUMER_CONTAINER: test-consumer1
+      POSTGRES_HOST: postgres-test
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-eventuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-eventpass}
+      POSTGRES_DB: ${POSTGRES_DB:-eventdb}
+      KAFKA_TIMEOUT: ${KAFKA_TIMEOUT:-30}
+      PYTHONPATH: /workspace
+    volumes:
+      - ./:/workspace:rw
+      - ./test-results:/workspace/test-results:rw
+      # Docker socket lets failure-injection tests stop/start sibling containers.
+      - /var/run/docker.sock:/var/run/docker.sock
+    working_dir: /workspace
+    networks:
+      - test-network
+    command: ["scripts/test/run-integration.sh"]
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+
+networks:
+  test-network:
+    driver: bridge
+    name: test-network
