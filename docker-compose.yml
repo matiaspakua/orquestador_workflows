@@ -13,6 +13,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/01-init-db.sql
       - ./scripts/init-workflow-db.sql:/docker-entrypoint-initdb.d/02-init-workflow-db.sql
+      - ./scripts/init-idempotency.sql:/docker-entrypoint-initdb.d/03-init-idempotency.sql
     networks:
       - event-network
     healthcheck:
@@ -59,13 +60,15 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+    volumes:
+      - ./scripts/init-topics.sh:/scripts/init-topics.sh
     networks:
       - event-network
     healthcheck:
-      test: ["CMD", "kafka-topics", "--list", "--bootstrap-server", "localhost:9092"]
+      test: ["CMD", "kafka-topics", "--list", "--bootstrap-server", "kafka:29092"]
       interval: 10s
       timeout: 10s
-      retries: 5
+      retries: 10
     deploy:
       resources:
         limits:
@@ -185,6 +188,62 @@ services:
       resources:
         limits:
           cpus: '0.5'
+          memory: 256M
+
+  # Orchestrator — manages workflow lifecycle and coordinates workers
+  orchestrator:
+    build: ./orchestrator
+    container_name: event-orchestrator
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BROKER}
+      WORKFLOW_INTERVAL: ${WORKFLOW_INTERVAL:-60}
+      METRICS_PORT: 8000
+    networks:
+      - event-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "app.py"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+  # Workers — 4 services: OrderValidator, FraudChecker, InventoryChecker, NotificationSender
+  workers:
+    build: ./workers
+    container_name: event-workers
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BROKER}
+      METRICS_PORT: 8000
+    networks:
+      - event-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "app.py"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
           memory: 256M
 
   # UI Web para monitoreo

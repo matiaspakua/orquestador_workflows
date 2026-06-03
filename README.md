@@ -1,149 +1,128 @@
 # Orquestador de Workflows
 
-**Event-driven workflow orchestration system** — microservices communicating through Apache Kafka, coordinated by an orchestrator, with data persisted in PostgreSQL.
-
-Built with **Python 3.11**, **Confluent Kafka 7.4.0**, **PostgreSQL 15**, and **Docker Compose**.
+**Event-driven workflow orchestration system** — 4 microservices coordinated by a central orchestrator through Apache Kafka, with real-time progress visible in a web dashboard, and full infrastructure observability via Prometheus + Grafana + Loki.
 
 ---
 
 ## Architecture
 
-```mermaid
-graph TB
-    classDef service fill:#3b82f6,stroke:#2563eb,color:#fff
-    classDef data fill:#8b5cf6,stroke:#7c3aed,color:#fff
-    classDef msg fill:#f59e0b,stroke:#d97706,color:#fff
-    classDef web fill:#10b981,stroke:#059669,color:#fff
-    classDef monitor fill:#ef4444,stroke:#dc2626,color:#fff
-    classDef future fill:#6b7280,stroke:#4b5563,color:#fff,stroke-dasharray: 5 5
-
-    subgraph Data["Data Layer"]
-        PG[(PostgreSQL 15)]:::data
-    end
-
-    subgraph Backbone["Message Backbone"]
-        K[Kafka 7.4.0]:::msg
-        Z[Zookeeper 7.4.0]:::msg
-    end
-
-    subgraph Services["Microservices"]
-        P[Producer]:::service
-        C1[Consumer 1]:::service
-        C2[Consumer 2]:::service
-    end
-
-    subgraph Interfaces["Web Interfaces"]
-        UI[Web UI<br/>Flask + Jinja2]:::web
-        KUI[Kafka UI]:::web
-        PGA[pgAdmin]:::web
-    end
-
-    subgraph Monitoring["Monitoring (Planned)"]
-        G[Grafana<br/>Functional Telemetry]:::future
-        PR[Prometheus<br/>Infrastructure Metrics]:::future
-    end
-
-    P -->|publish events| K
-    K -->|consume events| C1
-    K -->|consume events| C2
-    C1 -->|read / write| PG
-    C2 -->|read / write| PG
-    UI -->|read| PG
-    KUI -.->|monitor| K
-    PGA -.->|administer| PG
-    G -.->|telemetry| P
-    G -.->|telemetry| C1
-    G -.->|telemetry| C2
-    PR -.->|metrics| P
-    PR -.->|metrics| C1
-    PR -.->|metrics| C2
-    PR -.->|metrics| K
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          EVENT-DRIVEN PIPELINE                          │
+│  ┌─────────────┐   publish    ┌────────────┐   consume   ┌──────────┐  │
+│  │  Producer   │────events───►│   Kafka    │────events──►│Consumer 1│  │
+│  │             │              │  (Broker)  │             ├──────────┤  │
+│  └─────────────┘              └──────┬─────┘             │Consumer 2│  │
+│                                      │                   └──────────┘  │
+│  ┌──────────────────────────────────────────────────────────────────┐  │
+│  │                    WORKFLOW ORCHESTRATION                         │  │
+│  │  ┌────────────┐  task  ┌─────────────────────────────────────┐  │  │
+│  │  │Orchestrator│───────►│            Workers (4 services)     │  │  │
+│  │  │            │◄result─│  1. OrderValidator                  │  │  │
+│  │  │  manages   │        │  2. FraudChecker                    │  │  │
+│  │  │  lifecycle │        │  3. InventoryChecker                │  │  │
+│  │  │            │        │  4. NotificationSender              │  │  │
+│  │  └─────┬──────┘        └─────────────────────────────────────┘  │  │
+│  │        │ writes progress                                          │  │
+│  │        ▼                                                          │  │
+│  │  ┌────────────┐   workflow_executions + workflow_steps            │  │
+│  │  │ PostgreSQL │◄──── visible in Web UI /workflows ─────────────  │  │
+│  │  └────────────┘                                                   │  │
+│  └──────────────────────────────────────────────────────────────────┘  │
+│                                                                         │
+│  ┌──────────────────────────────────────────────────────────────────┐  │
+│  │                    OBSERVABILITY STACK                            │  │
+│  │  Prometheus:9090  Grafana:3000  Loki:3100  Alertmanager:9093     │  │
+│  │  cAdvisor:8082    promtail (log shipping)                        │  │
+│  └──────────────────────────────────────────────────────────────────┘  │
+│                                                                         │
+│  Web UI:5000 │ Kafka UI:8080 │ pgAdmin:8081 │ Grafana:3000            │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Workflow Lifecycle
+### Services
 
-```mermaid
-sequenceDiagram
-    participant User as Operator
-    participant WebUI as Web UI
-    participant Orc as Orchestrator
-    participant P as Producer
-    participant K as Kafka
-    participant C as Consumer
-    participant DB as PostgreSQL
-
-    User->>WebUI: Submit workflow definition
-    WebUI->>Orc: Start execution
-    Orc->>P: Begin publishing events
-    P->>K: Publish event messages
-    K->>C: Deliver messages in order
-    C->>DB: Process and persist results
-    C-->>K: Acknowledge delivery
-    Orc->>C: Poll completion status
-    C->>Orc: All messages processed
-    Orc->>WebUI: Workflow completed
-    WebUI->>User: Show execution result
-```
-
----
-
-## Services
-
-| Service | Role | Technology | Port |
-|---------|------|------------|------|
-| **producer** | Publishes workflow events to Kafka | Python 3.11, kafka-python | — |
-| **consumer** (×2) | Consumes and processes events, persists results | Python 3.11, kafka-python | — |
-| **web-ui** | Dashboard for operators to manage workflows | Python 3.11, Flask, Jinja2 | `5000` |
-| **kafka** | Event backbone for inter-service communication | Confluent CP-Kafka 7.4.0 | `9092` |
-| **zookeeper** | Kafka cluster coordination | Confluent CP-Zookeeper 7.4.0 | — |
-| **kafka-ui** | Topic browser and message inspector | provectuslabs/kafka-ui | `8080` |
-| **postgres** | Persistent data store | PostgreSQL 15 Alpine | `5432` |
-| **pgadmin** | Database administration UI | dpage/pgadmin4 | `8081` |
-
-### Planned
-
-| Service | Role | Spec |
+| Service | Port | Role |
 |---------|------|------|
-| **Orchestrator** | Workflow lifecycle management, step coordination | `specs/003-workflow-definition/` |
-| **Grafana** | Functional telemetry dashboards (workflow & message metrics) | `specs/002-grafana-telemetry/` |
-| **Prometheus** | Infrastructure monitoring (CPU, memory, logs, alerts) | `specs/004-prometheus-monitoring/` |
+| **Orchestrator** | 8000/metrics | Creates & coordinates workflow executions |
+| **Workers** | 8000/metrics | 4 workers: OrderValidator, FraudChecker, InventoryChecker, NotificationSender |
+| **Producer** | 8000/metrics | Generates random domain events → Kafka |
+| **Consumer 1/2** | 8000/metrics | Processes domain events from Kafka → PostgreSQL |
+| **Web UI** | 5000 | Workflow progress dashboard (real-time SSE) |
+| **Kafka** | 9092 | Message broker |
+| **PostgreSQL** | 5432 | State store |
+| **Prometheus** | 9090 | Metrics scraping + alerting |
+| **Grafana** | 3000 | 6 pre-provisioned dashboards |
+| **Loki** | 3100 | Centralized log aggregation |
+| **Alertmanager** | 9093 | Alert routing |
+| **cAdvisor** | 8082 | Container resource metrics |
+| **Kafka UI** | 8080 | Kafka topic browser |
+| **pgAdmin** | 8081 | PostgreSQL admin |
+
+### Order Processing Workflow (4 steps)
+
+```
+[OrderValidator] ──► [FraudChecker] ──► [InventoryChecker] ──► [NotificationSender]
+      │                    │                    │                       │
+  Validates           Flags orders         Confirms items           Sends email
+  amount/fields       > $5,000             in stock                 confirmation
+                      (→ DLQ)              10% stockout (→ DLQ)     Always OK
+```
+
+Each order is a separate workflow execution visible in the Web UI at **`http://localhost:5000/workflows`**.
 
 ---
 
-## Features
+## Quickstart
 
-| Feature | Status | Description |
-|---------|--------|-------------|
-| Core message pipeline | ✅ Live | Producer → Kafka → Consumer message flow |
-| Workflow Definition | 📋 Spec | Workflow lifecycle, step types, event schema |
-| Workflow Progress UI | 📋 Spec | Real-time workflow status dashboard |
-| Grafana Telemetry | 📋 Spec | Functional metrics dashboards |
-| Prometheus Monitoring | 📋 Spec | Infrastructure metrics, logs, alerts |
-| Producer-Consumer Tests | 🚧 In Progress | Integration test suite (28 tasks across 6 phases) |
-
----
-
-## Quick Start
+### 1. Prerequisites
 
 ```bash
-# 1. Clone and configure
-git clone <repo-url>
-cd orquestador_workflows
-cp .env.example .env
-
-# 2. Start all services
-docker-compose up -d
-
-# 3. Verify everything is running
-docker-compose ps
-
-# 4. View logs
-docker-compose logs -f
+docker --version        # Docker 24+
+docker compose version  # Compose v2.20+
+cp .env.example .env    # edit credentials if needed
 ```
 
-### Environment
+### 2. Start the full stack
 
-```env
+```bash
+docker compose up --build -d
+```
+
+Wait ~30 s for Kafka and PostgreSQL to become healthy (`docker compose ps`).
+
+### 3. Open the Web UI
+
+```
+http://localhost:5000/workflows
+```
+
+Workflow executions appear every 60 seconds (configurable via `WORKFLOW_INTERVAL`).
+Each execution shows its 4 steps with live status updates — no page refresh needed.
+
+### 4. Open Grafana
+
+```
+http://localhost:3000   (admin / admin)
+```
+
+Pre-provisioned dashboards are available immediately — no manual import required.
+
+### 5. Verify Prometheus targets
+
+```
+http://localhost:9090/targets
+```
+
+All 8 scrape targets should show `UP`.
+
+---
+
+## Configuration
+
+All settings live in `.env`:
+
+```dotenv
 # PostgreSQL
 POSTGRES_USER=eventuser
 POSTGRES_PASSWORD=eventpass
@@ -151,106 +130,166 @@ POSTGRES_DB=eventdb
 
 # Kafka
 KAFKA_BROKER=kafka:29092
-KAFKA_TOPIC=events
-CONSUMER_GROUP=event-consumers
+KAFKA_TOPIC=data-events
+CONSUMER_GROUP=data-processors
 
 # Producer
-PRODUCER_INTERVAL=5000    # ms between publishes
+PRODUCER_INTERVAL=5       # seconds between generated events
+
+# Orchestrator
+WORKFLOW_INTERVAL=60      # seconds between new workflow executions
 ```
 
 ---
 
-## Access Points
+## Web UI Guide
 
-| Service | URL | Credentials |
-|---------|-----|------------|
-| Web UI | [http://localhost:5000](http://localhost:5000) | — |
-| Kafka UI | [http://localhost:8080](http://localhost:8080) | — |
-| pgAdmin | [http://localhost:8081](http://localhost:8081) | `admin@event.com` / `admin123` |
+### Workflow List  `http://localhost:5000/workflows`
+
+- **Status badges**: gray = Pending, blue = Running, green = Completed, red = Failed
+- **Filters**: filter by status, date range, or name search
+- **Real-time**: SSE updates status badges live; falls back to polling every 10 s
+
+### Workflow Detail  `http://localhost:5000/workflows/<id>`
+
+- Execution summary: name, status, timestamps, total duration
+- Step table: all 4 steps with status, duration, and error message if failed
+- Auto-refreshes every 5 s for Running/Pending executions
+
+### What to expect
+
+| Scenario | Frequency | Why |
+|----------|-----------|-----|
+| Completed (all 4 steps green) | ~75% | Orders ≤ $5,000 with stock |
+| Failed at FraudChecker | ~15% | Orders > $5,000 flagged |
+| Failed at InventoryChecker | ~10% | Random stockout simulation |
+
+---
+
+## Monitoring Guide
+
+### Grafana Dashboards
+
+| Dashboard | What it shows |
+|-----------|---------------|
+| **Component Health** | Health status, publish/consume rates, errors per service |
+| **Workflow Metrics** | Execution counts, p50/p95/p99 duration histogram, error rate |
+| **Message Metrics** | Kafka publish/consume rates, consumer lag |
+| **Container Resources** | CPU %, memory %, disk I/O, network per container |
+| **Log Explorer** | Full log stream with container + severity filters (Loki) |
+| **Infrastructure Alerts** | Firing/resolved alerts table with severity badges |
+
+### Key Prometheus metrics
+
+| Metric | Source |
+|--------|--------|
+| `health_status{component=X}` | all services |
+| `orchestrator_workflows_completed_total{status}` | orchestrator |
+| `orchestrator_workflow_duration_seconds` | orchestrator |
+| `worker_tasks_processed_total{worker,status}` | workers |
+| `messages_published_total` / `messages_consumed_total` | producer/consumer |
+| `consumer_lag{topic,partition}` | consumer |
+
+### Loki log queries
+
+```logql
+# All errors
+{container=~".+"} | json | level = "ERROR"
+
+# Trace one workflow execution
+{container=~".+"} | json | workflow_execution_id = "<uuid>"
+
+# Worker failures
+{container="workers"} | json | level = "ERROR"
+```
+
+See [`docs/loki-queries.md`](docs/loki-queries.md) for more presets.
+
+### Alerts
+
+Prometheus fires alerts (via Alertmanager) when:
+
+| Alert | Threshold | Duration |
+|-------|-----------|----------|
+| `ContainerCPUWarning` | CPU > 80% | 2 min |
+| `ContainerCPUCritical` | CPU > 90% | 2 min |
+| `ContainerMemoryWarning` | Memory > 80% | 2 min |
+| `ContainerMemoryCritical` | Memory > 90% | 2 min |
+| `ContainerDiskWarning` | Disk I/O > 80% | 5 min |
+| `ContainerDiskCritical` | Disk I/O > 90% | 5 min |
 
 ---
 
 ## Development
 
-```bash
-# View service logs
-docker-compose logs -f producer consumer1
+### Run UI tests
 
-# Rebuild a single service
-docker-compose up -d --build producer
+```bash
+cd ui && python3 -m pytest tests/ -v
+# 23 tests, all routes, SSE, error boundary, 503 on DB failure
 ```
 
-### Project Structure
+### Run integration tests (requires Docker)
+
+```bash
+docker compose -f docker-compose.test.yml up --build
+```
+
+### Create Kafka topics explicitly
+
+```bash
+docker compose exec kafka /scripts/init-topics.sh
+```
+
+### Add a new workflow step
+
+1. Add the step to `orchestrator/app.py` → `WORKFLOW_DEF['steps']`
+2. Add the worker function to `workers/app.py` → `WORKERS` list
+3. Add the topic to `scripts/init-topics.sh`
+4. Restart: `docker compose restart orchestrator workers`
+
+---
+
+## Project Structure
 
 ```
 orquestador_workflows/
-├── consumer/          # Event consumer microservice
-│   ├── app.py
-│   ├── Dockerfile
-│   └── requirements.txt
-├── producer/          # Event producer microservice
-│   ├── app.py
-│   ├── Dockerfile
-│   └── requirements.txt
-├── ui/               # Web dashboard (Flask + Jinja2)
-│   ├── app.py
-│   ├── Dockerfile
-│   ├── requirements.txt
-│   └── templates/
-├── scripts/          # Initialization and test scripts
-├── diagrams/         # Architecture diagrams (PlantUML)
-├── specs/            # Feature specifications
-│   ├── 001-workflow-progress-ui/
-│   ├── 002-grafana-telemetry/
-│   ├── 003-workflow-definition/
-│   ├── 004-prometheus-monitoring/
-│   └── 005-producer-consumer-test/
-├── docker-compose.yml
-└── .env
+├── orchestrator/          # Workflow lifecycle manager (state machine + Kafka)
+├── workers/               # 4 worker services (one process, 4 threads)
+├── producer/              # Domain event generator
+├── consumer/              # Domain event processor (2 instances)
+├── ui/                    # Flask web dashboard + SSE + 23 tests
+├── prometheus/            # Scrape config + recording rules + alert rules
+├── grafana/               # 6 pre-provisioned dashboards + datasources
+├── loki/                  # Log aggregation config (7-day retention)
+├── promtail/              # Log shipping (docker_sd_configs)
+├── alertmanager/          # Alert routing + inhibit rules
+├── docs/                  # Workflow lifecycle, step types, event schemas
+│   └── schemas/           # JSON Schema for 8 workflow/event types
+├── scripts/               # SQL init (DB, workflow tables, idempotency)
+│   └── init-topics.sh     # Explicit Kafka topic creation
+├── specs/                 # 5 feature specifications (001-005)
+├── docker-compose.yml     # Full 14-service stack
+└── docker-compose.test.yml# Integration test overlay
 ```
 
 ---
 
-## Testing
+## Security Notes
 
-```bash
-# Run the integration test suite
-docker-compose -f docker-compose.test.yml up --build
-```
-
-The test suite validates:
-
-- **End-to-end message flow** — producer → Kafka → consumer message delivery
-- **Payload integrity** — consumed data matches published data exactly
-- **Message ordering** — in-sequence delivery within a single partition
-- **Error handling** — Kafka unavailability, invalid messages, network interruptions
-- **Orchestrator coordination** — workflow start, completion, and cancellation
-
-See `specs/005-producer-consumer-test/` for the full test specification and implementation plan.
+- **`.env` is gitignored** — never commit it; use `.env.example` as the template.
+- `pgAdmin` credentials in `docker-compose.yml` are for local development only.
+- Flask runs with `debug=False` by default (`FLASK_DEBUG=0`).
+- Prometheus metrics endpoints are on the internal Docker network only.
 
 ---
 
-## Monitoring
+## Feature Status
 
-| Tool | Purpose | Access |
-|------|---------|--------|
-| **Kafka UI** | Browse topics, inspect messages, monitor consumer groups | `:8080` |
-| **pgAdmin** | Query databases, inspect schema, manage data | `:8081` |
-| **Logs** | Real-time log streaming per service | `docker-compose logs -f` |
-
-### Planned
-
-- **Grafana** — Functional telemetry: workflow execution rates, processing durations, message throughput, component health (`specs/002-grafana-telemetry/`)
-- **Prometheus** — Infrastructure monitoring: CPU, memory, disk, network per container, centralized log search, configurable alerts (`specs/004-prometheus-monitoring/`)
-
----
-
-## Constitution
-
-This project follows a formal constitution defining non-negotiable standards for code quality, testing, UX, performance, and architecture. See `.specify/memory/constitution.md`.
-
----
-
-## License
-
-MIT
+| Feature | Status | Description |
+|---------|--------|-------------|
+| [001 Workflow Progress UI](specs/001-workflow-progress-ui/) | ✅ Complete | Real-time dashboard, SSE, filters, 23 tests |
+| [002 Grafana Telemetry](specs/002-grafana-telemetry/) | ✅ Complete | Prometheus metrics on all services + 3 dashboards |
+| [003 Workflow Definition](specs/003-workflow-definition/) | ✅ Complete | Lifecycle docs, step types, 8 JSON schemas |
+| [004 Prometheus Monitoring](specs/004-prometheus-monitoring/) | ✅ Complete | cAdvisor, Loki, alerts, 3 more dashboards |
+| [005 Producer-Consumer Test](specs/005-producer-consumer-test/) | ✅ Complete | Full integration test suite |
