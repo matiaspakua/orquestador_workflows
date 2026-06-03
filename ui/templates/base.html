@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Orquestador{% endblock %} - Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header h1 { font-size: 1.4rem; }
+
+        .nav { display: flex; gap: 1.5rem; }
+
+        .nav a {
+            color: rgba(255,255,255,0.85);
+            text-decoration: none;
+            font-size: 0.95rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            transition: background 0.15s;
+        }
+
+        .nav a:hover, .nav a.active {
+            color: white;
+            background: rgba(255,255,255,0.2);
+        }
+
+        .main {
+            max-width: 1200px;
+            margin: 1.5rem auto;
+            padding: 0 1rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.25rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+            margin-bottom: 1rem;
+        }
+
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        /* Status badges */
+        .badge {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .badge-pending   { background: #e2e8f0; color: #4a5568; }
+        .badge-running   { background: #bee3f8; color: #2b6cb0; }
+        .badge-completed { background: #c6f6d5; color: #276749; }
+        .badge-failed    { background: #fed7d7; color: #9b2c2c; }
+        .badge-skipped   { background: #faf089; color: #744210; }
+
+        /* Alert banner */
+        .alert {
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .alert-warning { background: #fefcbf; border-left: 4px solid #d69e2e; color: #7b341e; }
+        .alert-info    { background: #bee3f8; border-left: 4px solid #3182ce; color: #1a365d; }
+
+        /* Table */
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        th { text-align: left; padding: 0.6rem 0.75rem; background: #f7fafc; color: #4a5568; font-weight: 600; border-bottom: 2px solid #e2e8f0; }
+        td { padding: 0.6rem 0.75rem; border-bottom: 1px solid #e2e8f0; vertical-align: middle; }
+        tr:hover td { background: #f7fafc; }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .btn {
+            padding: 0.4rem 0.9rem;
+            border: 1px solid #cbd5e0;
+            border-radius: 5px;
+            background: white;
+            cursor: pointer;
+            color: #4a5568;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: background 0.15s;
+        }
+
+        .btn:hover { background: #edf2f7; }
+        .btn:disabled, .btn.disabled { opacity: 0.45; pointer-events: none; }
+        .btn-primary { background: #667eea; color: white; border-color: #667eea; }
+        .btn-primary:hover { background: #5a67d8; }
+
+        .page-info { color: #718096; }
+
+        /* Filter bar */
+        .filter-bar {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            margin-bottom: 1rem;
+        }
+
+        .filter-bar label { display: block; font-size: 0.8rem; color: #718096; margin-bottom: 0.25rem; }
+
+        .filter-bar select,
+        .filter-bar input[type="text"],
+        .filter-bar input[type="date"] {
+            padding: 0.4rem 0.6rem;
+            border: 1px solid #cbd5e0;
+            border-radius: 5px;
+            font-size: 0.875rem;
+            color: #2d3748;
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #a0aec0;
+        }
+
+        .empty-state p { margin-bottom: 0.5rem; }
+
+        /* SSE indicator */
+        #sse-indicator {
+            font-size: 0.75rem;
+            color: rgba(255,255,255,0.75);
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: #68d391;
+        }
+
+        .dot.polling { background: #f6e05e; }
+        .dot.disconnected { background: #fc8181; }
+    </style>
+    {% block extra_styles %}{% endblock %}
+</head>
+<body>
+<header class="header">
+    <h1>Orquestador de Workflows</h1>
+    <nav class="nav">
+        <a href="/" {% if request.path == '/' %}class="active"{% endif %}>Dashboard</a>
+        <a href="/workflows" {% if request.path.startswith('/workflows') %}class="active"{% endif %}>Ejecuciones</a>
+    </nav>
+    <div id="sse-indicator">
+        <span class="dot" id="sse-dot"></span>
+        <span id="sse-label">En vivo</span>
+    </div>
+</header>
+
+<main class="main">
+    {% block content %}{% endblock %}
+</main>
+
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>

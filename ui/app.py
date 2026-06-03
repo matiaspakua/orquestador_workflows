@@ -1,8 +1,11 @@
 import os
 import json
+import time
 import psycopg2
 from datetime import datetime, timedelta
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, request, Response, stream_with_context
+
+from services import workflow_service
 
 app = Flask(__name__)
 
@@ -196,6 +199,118 @@ def get_consumer_stats():
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+# ── Workflow Progress UI routes (feature 001) ────────────────────────────────
+
+PER_PAGE = 50
+
+@app.route('/workflows')
+def workflow_list():
+    page = max(1, int(request.args.get('page', 1)))
+    status = request.args.get('status', '')
+    date_from = request.args.get('date_from', '')
+    date_to = request.args.get('date_to', '')
+    search = request.args.get('search', '')
+
+    filters = dict(
+        status=status or None,
+        date_from=date_from or None,
+        date_to=date_to or None,
+        search=search or None,
+    )
+
+    try:
+        executions = workflow_service.get_workflow_executions(page=page, per_page=PER_PAGE, **filters)
+        total = workflow_service.get_workflow_execution_count(**filters)
+    except Exception:
+        executions = []
+        total = 0
+
+    total_pages = max(1, -(-total // PER_PAGE))  # ceil division
+
+    return render_template(
+        'workflow_list.html',
+        executions=executions,
+        page=page,
+        total_pages=total_pages,
+        total=total,
+        status=status,
+        date_from=date_from,
+        date_to=date_to,
+        search=search,
+    )
+
+
+@app.route('/workflows/<execution_id>')
+def workflow_detail(execution_id):
+    try:
+        execution = workflow_service.get_workflow_execution(execution_id)
+        steps = workflow_service.get_workflow_steps(execution_id) if execution else []
+    except Exception:
+        execution = None
+        steps = []
+
+    if execution is None:
+        return render_template('workflow_detail.html', execution=None, steps=[]), 404
+
+    return render_template('workflow_detail.html', execution=execution, steps=steps)
+
+
+@app.route('/api/workflows')
+def api_workflow_list():
+    page = max(1, int(request.args.get('page', 1)))
+    per_page = min(200, int(request.args.get('per_page', PER_PAGE)))
+    filters = dict(
+        status=request.args.get('status') or None,
+        date_from=request.args.get('date_from') or None,
+        date_to=request.args.get('date_to') or None,
+        search=request.args.get('search') or None,
+    )
+    try:
+        executions = workflow_service.get_workflow_executions(page=page, per_page=per_page, **filters)
+        total = workflow_service.get_workflow_execution_count(**filters)
+    except Exception as e:
+        return jsonify({'error': 'Error al consultar ejecuciones'}), 500
+
+    response = jsonify({'executions': executions, 'total': total, 'page': page, 'per_page': per_page})
+    response.headers['X-Total-Count'] = total
+    return response
+
+
+@app.route('/api/workflows/<execution_id>')
+def api_workflow_detail(execution_id):
+    try:
+        execution = workflow_service.get_workflow_execution(execution_id)
+        if execution is None:
+            return jsonify({'error': 'No encontrado'}), 404
+        steps = workflow_service.get_workflow_steps(execution_id)
+        return jsonify({'execution': execution, 'steps': steps})
+    except Exception:
+        return jsonify({'error': 'Error al consultar detalle'}), 500
+
+
+@app.route('/api/workflows/stream')
+def workflow_stream():
+    def event_stream():
+        while True:
+            try:
+                rows = workflow_service.get_recent_status_changes()
+                data = json.dumps(rows, default=str)
+                yield f"event: status_update\ndata: {data}\n\n"
+            except Exception:
+                yield "event: error\ndata: {}\n\n"
+            time.sleep(4)
+
+    return Response(
+        stream_with_context(event_stream()),
+        content_type='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'X-Accel-Buffering': 'no',
+        },
+    )
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=os.getenv('FLASK_DEBUG', '0') == '1')

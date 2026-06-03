@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% block title %}Ejecuciones{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Ejecuciones de Workflows</h2>
+
+    <!-- Filter bar -->
+    <form method="get" action="/workflows">
+        <div class="filter-bar">
+            <div>
+                <label for="status">Estado</label>
+                <select name="status" id="status">
+                    <option value="">Todos</option>
+                    <option value="Pending"   {% if status == 'Pending'   %}selected{% endif %}>Pendiente</option>
+                    <option value="Running"   {% if status == 'Running'   %}selected{% endif %}>Ejecutando</option>
+                    <option value="Completed" {% if status == 'Completed' %}selected{% endif %}>Completado</option>
+                    <option value="Failed"    {% if status == 'Failed'    %}selected{% endif %}>Fallido</option>
+                </select>
+            </div>
+            <div>
+                <label for="date_from">Desde</label>
+                <input type="date" name="date_from" id="date_from" value="{{ date_from }}">
+            </div>
+            <div>
+                <label for="date_to">Hasta</label>
+                <input type="date" name="date_to" id="date_to" value="{{ date_to }}">
+            </div>
+            <div>
+                <label for="search">Buscar</label>
+                <input type="text" name="search" id="search" value="{{ search }}" placeholder="Nombre del workflow…">
+            </div>
+            <div style="padding-bottom:0.05rem">
+                <button type="submit" class="btn btn-primary">Filtrar</button>
+                <a href="/workflows" class="btn" style="margin-left:0.25rem">Limpiar</a>
+            </div>
+        </div>
+    </form>
+
+    {% if executions %}
+    <p style="color:#718096;font-size:0.85rem;margin-bottom:0.75rem">
+        Mostrando {{ executions|length }} de {{ total }} ejecuciones — página {{ page }} de {{ total_pages }}
+    </p>
+
+    <table id="workflow-table">
+        <thead>
+            <tr>
+                <th>Estado</th>
+                <th>Nombre</th>
+                <th>Inicio</th>
+                <th>Duración</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ex in executions %}
+            <tr data-id="{{ ex.id }}">
+                <td>
+                    <span class="badge badge-{{ ex.status | lower }}" id="status-{{ ex.id }}">
+                        {% if ex.status == 'Pending' %}Pendiente
+                        {% elif ex.status == 'Running' %}Ejecutando
+                        {% elif ex.status == 'Completed' %}Completado
+                        {% elif ex.status == 'Failed' %}Fallido
+                        {% else %}{{ ex.status }}
+                        {% endif %}
+                    </span>
+                </td>
+                <td><a href="/workflows/{{ ex.id }}">{{ ex.name }}</a></td>
+                <td>{{ ex.started_at.strftime('%Y-%m-%d %H:%M:%S') if ex.started_at else '—' }}</td>
+                <td>
+                    {% if ex.duration_seconds is not none %}
+                        {{ '%d:%02d' | format(ex.duration_seconds // 60, ex.duration_seconds % 60) }}
+                    {% elif ex.status == 'Running' %}
+                        <span style="color:#2b6cb0">En curso…</span>
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Pagination -->
+    <div class="pagination">
+        {% set base = '/workflows?status=' ~ status ~ '&date_from=' ~ date_from ~ '&date_to=' ~ date_to ~ '&search=' ~ search %}
+        <a href="{{ base }}&page={{ page - 1 }}"
+           class="btn {% if page <= 1 %}disabled{% endif %}">Anterior</a>
+        <span class="page-info">Página {{ page }} / {{ total_pages }}</span>
+        <a href="{{ base }}&page={{ page + 1 }}"
+           class="btn {% if page >= total_pages %}disabled{% endif %}">Siguiente</a>
+    </div>
+
+    {% else %}
+    <div class="empty-state">
+        <p><strong>No se encontraron ejecuciones</strong></p>
+        <p>Ajusta los filtros o verifica que el orquestador esté en ejecución.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Disconnected banner (hidden by default, shown by JS) -->
+<div id="disconnected-banner" class="alert alert-warning" style="display:none">
+    El orquestador parece desconectado. Actualizando en modo polling cada 10 s.
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+    const dot = document.getElementById('sse-dot');
+    const label = document.getElementById('sse-label');
+    const banner = document.getElementById('disconnected-banner');
+
+    function updateBadge(id, status) {
+        const el = document.getElementById('status-' + id);
+        if (!el) return;
+        const map = {
+            Pending: ['badge-pending', 'Pendiente'],
+            Running: ['badge-running', 'Ejecutando'],
+            Completed: ['badge-completed', 'Completado'],
+            Failed: ['badge-failed', 'Fallido'],
+        };
+        const [cls, label] = map[status] || ['badge-pending', status];
+        el.className = 'badge ' + cls;
+        el.textContent = label;
+    }
+
+    function handleUpdate(rows) {
+        rows.forEach(function (row) { updateBadge(row.id, row.status); });
+    }
+
+    // SSE connection
+    let es;
+    function connectSSE() {
+        es = new EventSource('/api/workflows/stream');
+
+        es.addEventListener('status_update', function (e) {
+            try { handleUpdate(JSON.parse(e.data)); } catch (_) {}
+        });
+
+        es.onopen = function () {
+            dot.className = 'dot';
+            label.textContent = 'En vivo';
+            banner.style.display = 'none';
+        };
+
+        es.onerror = function () {
+            dot.className = 'dot polling';
+            label.textContent = 'Polling';
+            banner.style.display = 'block';
+            es.close();
+            startPolling();
+        };
+    }
+
+    // Polling fallback
+    let pollTimer;
+    function startPolling() {
+        clearInterval(pollTimer);
+        pollTimer = setInterval(function () {
+            fetch('/api/workflows')
+                .then(function (r) { return r.json(); })
+                .then(function (data) { handleUpdate(data.executions || []); })
+                .catch(function () {
+                    dot.className = 'dot disconnected';
+                    label.textContent = 'Desconectado';
+                });
+        }, 10000);
+    }
+
+    connectSSE();
+})();
+</script>
+{% endblock %}
