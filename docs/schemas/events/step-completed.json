@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "event/step-completed",
+  "title": "StepCompleted",
+  "description": "Emitted when a step finishes successfully",
+  "type": "object",
+  "required": ["event_type", "schema_version", "workflow_execution_id", "step_id", "step_name", "timestamp", "payload"],
+  "properties": {
+    "event_type": { "type": "string", "const": "StepCompleted" },
+    "schema_version": { "type": "integer", "const": 1 },
+    "workflow_id": { "type": "string", "format": "uuid" },
+    "workflow_execution_id": { "type": "string", "format": "uuid" },
+    "workflow_definition_id": { "type": "string", "format": "uuid" },
+    "step_id": { "type": "string" },
+    "step_name": { "type": "string" },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "payload": {
+      "type": "object",
+      "required": ["step_id", "duration_ms"],
+      "properties": {
+        "step_id": { "type": "string" },
+        "output": { "type": "object" },
+        "duration_ms": { "type": "integer", "minimum": 0 },
+        "next_step_id": { "oneOf": [{ "type": "string" }, { "type": "null" }] }
+      }
+    }
+  }
+}

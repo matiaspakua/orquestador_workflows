@@ -1,0 +1,49 @@
+groups:
+  - name: container_resource_recording_rules
+    interval: 15s
+    rules:
+      - record: container_cpu_usage_percent
+        expr: |
+          100 * rate(container_cpu_usage_seconds_total{
+            container!="",image!=""
+          }[5m])
+
+      - record: container_memory_usage_percent
+        expr: |
+          100 * container_memory_usage_bytes{container!="",image!=""}
+          / container_spec_memory_limit_bytes{container!="",image!=""}
+
+      - record: container_memory_usage_bytes
+        expr: |
+          container_memory_usage_bytes{container!="",image!=""}
+
+      - record: container_disk_read_bytes_total
+        expr: |
+          sum by (container,image) (
+            rate(container_fs_reads_bytes_total{container!="",image!=""}[5m])
+          )
+
+      - record: container_disk_write_bytes_total
+        expr: |
+          sum by (container,image) (
+            rate(container_fs_writes_bytes_total{container!="",image!=""}[5m])
+          )
+
+      - record: container_network_rx_bytes_total
+        expr: |
+          sum by (container,image) (
+            rate(container_network_receive_bytes_total{container!="",image!=""}[5m])
+          )
+
+      - record: container_network_tx_bytes_total
+        expr: |
+          sum by (container,image) (
+            rate(container_network_transmit_bytes_total{container!="",image!=""}[5m])
+          )
+
+      # Gap filling on container restart
+      - record: container_restart_indicator
+        expr: |
+          changes(container_start_time_seconds{container!="",image!=""}[2m]) > 0
+        or
+          vector(0)

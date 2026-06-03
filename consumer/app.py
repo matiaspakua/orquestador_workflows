@@ -7,6 +7,9 @@ from datetime import datetime
 from kafka import KafkaConsumer
 from kafka.errors import KafkaError
 from pythonjsonlogger.json import JsonFormatter
+from prometheus_client import (
+    start_http_server, Counter, Gauge, Info,
+)
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -14,10 +17,22 @@ handler = logging.StreamHandler()
 handler.setFormatter(JsonFormatter())
 logger.addHandler(handler)
 
+# ── Prometheus metrics (feature 002) ─────────────────────────────────────────
+MESSAGES_CONSUMED    = Counter('messages_consumed_total', 'Total Kafka messages consumed', ['topic', 'consumer_id'])
+CONSUME_ERRORS       = Counter('errors_total',            'Total consume errors',          ['type', 'consumer_id'])
+HEALTH_STATUS        = Gauge(  'health_status',           '1=healthy 0=unhealthy',         ['component'])
+COMPONENT_INFO       = Info(   'component',               'Static component metadata')
+CONSUMER_LAG         = Gauge(  'consumer_lag',            'Consumer lag per topic/partition', ['topic', 'partition', 'consumer_id'])
+MESSAGES_CONSUME_RATE = Gauge( 'messages_consume_rate',  'Recent consume rate (msg/s)',    ['topic', 'consumer_id'])
+
 class EventConsumer:
     def __init__(self):
         self.consumer_id = os.getenv('CONSUMER_ID', 'consumer-default')
         self.kafka_consumer = None
+        self._consumed_in_window = 0
+        self._window_start = time.monotonic()
+        COMPONENT_INFO.info({'name': self.consumer_id, 'version': '1.0.0'})
+        HEALTH_STATUS.labels(component=self.consumer_id).set(0)
         self.db_connection = None
         self.setup_kafka()
         self.setup_database()
@@ -54,6 +69,7 @@ class EventConsumer:
                 )
                 self.db_connection.autocommit = True
                 logger.info(f"Conexión a PostgreSQL establecida para {self.consumer_id}")
+                HEALTH_STATUS.labels(component=self.consumer_id).set(1)
                 break
             except Exception as e:
                 if attempt < max_retries - 1:
@@ -216,6 +232,7 @@ class EventConsumer:
                 error_message = "Procesamiento falló"
                 
         except Exception as e:
+            CONSUME_ERRORS.labels(type='processing', consumer_id=self.consumer_id).inc()
             logger.error(f"Error procesando mensaje: {e}")
             self.update_data_status(data_reference_id, 'ERROR')
             status = 'ERROR'
@@ -262,6 +279,16 @@ class EventConsumer:
                     for topic_partition, messages in message_batch.items():
                         for message in messages:
                             messages_processed += 1
+                            topic = topic_partition.topic
+                            partition = str(topic_partition.partition)
+                            MESSAGES_CONSUMED.labels(topic=topic, consumer_id=self.consumer_id).inc()
+                            self._consumed_in_window += 1
+                            elapsed = time.monotonic() - self._window_start
+                            if elapsed >= 10 or self._consumed_in_window >= 10:
+                                rate = self._consumed_in_window / max(elapsed, 1)
+                                MESSAGES_CONSUME_RATE.labels(topic=topic, consumer_id=self.consumer_id).set(rate)
+                                self._consumed_in_window = 0
+                                self._window_start = time.monotonic()
                             success = self.process_message(message)
                             
                             if success:
@@ -283,5 +310,8 @@ class EventConsumer:
                 self.db_connection.close()
 
 if __name__ == "__main__":
+    metrics_port = int(os.getenv('METRICS_PORT', 8000))
+    start_http_server(metrics_port)
+    logger.info(f"Prometheus metrics server started on port {metrics_port}")
     consumer = EventConsumer()
     consumer.run()

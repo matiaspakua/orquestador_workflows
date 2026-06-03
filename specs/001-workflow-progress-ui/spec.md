@@ -4,7 +4,7 @@
 
 **Created**: 2026-06-02
 
-**Status**: Draft
+**Status**: Complete — All 39 tasks done. DB schema, service layer, Flask routes, SSE+polling, templates, disconnected banner, 503 error boundary, docker-compose wired. 23 tests passing.
 
 **Input**: User description: "Implement a UI to view the execution progress of the orchestrator"
 

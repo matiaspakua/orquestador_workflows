@@ -1,0 +1,69 @@
+groups:
+  - name: container_resource_alerts
+    rules:
+      # ── CPU ──────────────────────────────────────────────────────────────────
+      - alert: ContainerCPUWarning
+        expr: container_cpu_usage_percent > 80
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container {{ $labels.container }} CPU above 80%"
+          description: "CPU usage is {{ $value | printf \"%.1f\" }}% for container {{ $labels.container }}."
+
+      - alert: ContainerCPUCritical
+        expr: container_cpu_usage_percent > 90
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Container {{ $labels.container }} CPU above 90%"
+          description: "CPU usage is {{ $value | printf \"%.1f\" }}% for container {{ $labels.container }}."
+
+      # ── Memory ───────────────────────────────────────────────────────────────
+      - alert: ContainerMemoryWarning
+        expr: container_memory_usage_percent > 80
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container {{ $labels.container }} memory above 80%"
+          description: "Memory usage is {{ $value | printf \"%.1f\" }}% for container {{ $labels.container }}."
+
+      - alert: ContainerMemoryCritical
+        expr: container_memory_usage_percent > 90
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Container {{ $labels.container }} memory above 90%"
+          description: "Memory usage is {{ $value | printf \"%.1f\" }}% for container {{ $labels.container }}."
+
+      # ── Disk ─────────────────────────────────────────────────────────────────
+      - alert: ContainerDiskWarning
+        expr: |
+          (
+            sum by (container) (container_disk_write_bytes_total + container_disk_read_bytes_total)
+            /
+            sum by (container) (container_spec_memory_limit_bytes)
+          ) > 0.80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container {{ $labels.container }} disk I/O above 80% threshold"
+          description: "Disk I/O ratio is {{ $value | printf \"%.1f\" }} for container {{ $labels.container }}."
+
+      - alert: ContainerDiskCritical
+        expr: |
+          (
+            sum by (container) (container_disk_write_bytes_total + container_disk_read_bytes_total)
+            /
+            sum by (container) (container_spec_memory_limit_bytes)
+          ) > 0.90
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Container {{ $labels.container }} disk I/O above 90% threshold"
+          description: "Disk I/O ratio is {{ $value | printf \"%.1f\" }} for container {{ $labels.container }}."

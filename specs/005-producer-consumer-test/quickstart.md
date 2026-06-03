@@ -16,7 +16,23 @@ docker-compose -f docker-compose.test.yml up --build
 ### Run a specific test scenario
 
 ```bash
-docker-compose -f docker-compose.test.yml run --rm test-runner pytest tests/integration/test_message_flow.py -v
+docker-compose -f docker-compose.test.yml run --rm test-runner pytest producer/tests/integration/test_message_flow.py -v
+```
+
+### CI invocation (clean exit code)
+
+The Kafka-unavailable test (T013) deliberately stops and restarts the
+`test-kafka` container. Do **not** use `--abort-on-container-exit` /
+`--exit-code-from`: those flags tear the whole stack down the moment Kafka
+stops, killing the test runner mid-suite. Instead isolate the runner with
+`compose run`, which is unaffected when a sibling container restarts:
+
+```bash
+docker-compose -f docker-compose.test.yml up -d postgres-test kafka-test
+docker-compose -f docker-compose.test.yml run --rm test-runner scripts/test/run-integration.sh
+rc=$?
+docker-compose -f docker-compose.test.yml down -v
+exit $rc
 ```
 
 ## Test Scenarios

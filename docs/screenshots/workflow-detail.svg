@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="540" font-family="'Segoe UI',sans-serif">
+  <rect width="900" height="540" fill="#f5f5f5"/>
+  <!-- header -->
+  <rect width="900" height="56" fill="url(#hdr2)"/>
+  <defs>
+    <linearGradient id="hdr2" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#667eea"/>
+      <stop offset="100%" stop-color="#764ba2"/>
+    </linearGradient>
+    <filter id="sh2"><feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="rgba(0,0,0,0.08)"/></filter>
+  </defs>
+  <text x="24" y="35" fill="white" font-size="18" font-weight="600">Orquestador de Workflows</text>
+  <text x="500" y="35" fill="rgba(255,255,255,0.8)" font-size="13">Dashboard</text>
+  <text x="580" y="35" fill="white" font-size="13" font-weight="600">Ejecuciones</text>
+  <circle cx="860" cy="28" r="5" fill="#68d391"/>
+  <text x="870" y="33" fill="rgba(255,255,255,0.8)" font-size="11">En vivo</text>
+
+  <!-- summary card -->
+  <rect x="16" y="72" width="868" height="110" rx="8" fill="white" filter="url(#sh2)"/>
+  <text x="32" y="102" fill="#2d3748" font-size="16" font-weight="700">order-processing / ORD-00042</text>
+  <rect x="420" y="88" width="86" height="22" rx="11" fill="#c6f6d5"/>
+  <text x="430" y="104" fill="#276749" font-size="12" font-weight="600">COMPLETADO</text>
+  <text x="32" y="128" fill="#718096" font-size="11">ID</text>
+  <text x="32" y="144" fill="#4a5568" font-size="12" font-family="monospace">a3f2b1c4-9e8d-4f7a-b2c1-d5e6f0a1b2c3</text>
+  <text x="300" y="128" fill="#718096" font-size="11">Inicio</text>
+  <text x="300" y="144" fill="#4a5568" font-size="12">2026-06-03 19:45:12</text>
+  <text x="520" y="128" fill="#718096" font-size="11">Fin</text>
+  <text x="520" y="144" fill="#4a5568" font-size="12">2026-06-03 19:45:35</text>
+  <text x="720" y="128" fill="#718096" font-size="11">Duración</text>
+  <text x="720" y="144" fill="#4a5568" font-size="12" font-weight="600">0:23</text>
+  <line x1="32" y1="158" x2="868" y2="158" stroke="#f0f0f0" stroke-width="1"/>
+  <text x="32" y="174" fill="#667eea" font-size="13" font-weight="600">Pasos de ejecución</text>
+
+  <!-- steps card -->
+  <rect x="16" y="188" width="868" height="296" rx="8" fill="white" filter="url(#sh2)"/>
+
+  <!-- steps table header -->
+  <rect x="32" y="204" width="836" height="28" fill="#f7fafc"/>
+  <text x="48" y="222" fill="#4a5568" font-size="12" font-weight="600">#</text>
+  <text x="80" y="222" fill="#4a5568" font-size="12" font-weight="600">Nombre</text>
+  <text x="360" y="222" fill="#4a5568" font-size="12" font-weight="600">Tipo</text>
+  <text x="450" y="222" fill="#4a5568" font-size="12" font-weight="600">Estado</text>
+  <text x="580" y="222" fill="#4a5568" font-size="12" font-weight="600">Inicio</text>
+  <text x="720" y="222" fill="#4a5568" font-size="12" font-weight="600">Duración</text>
+  <line x1="32" y1="232" x2="868" y2="232" stroke="#e2e8f0" stroke-width="2"/>
+
+  <!-- step 1: completed -->
+  <text x="48" y="254" fill="#a0aec0" font-size="12">1</text>
+  <text x="80" y="254" fill="#2d3748" font-size="13">Validate Order</text>
+  <rect x="360" y="240" width="56" height="18" rx="9" fill="#e2e8f0"/>
+  <text x="369" y="253" fill="#4a5568" font-size="10" font-weight="600">TASK</text>
+  <rect x="450" y="240" width="86" height="18" rx="9" fill="#c6f6d5"/>
+  <text x="460" y="253" fill="#276749" font-size="10" font-weight="600">COMPLETADO</text>
+  <text x="580" y="254" fill="#718096" font-size="12">19:45:12</text>
+  <text x="720" y="254" fill="#4a5568" font-size="12">5.2s</text>
+  <line x1="32" y1="264" x2="868" y2="264" stroke="#e2e8f0"/>
+
+  <!-- step 2: completed -->
+  <text x="48" y="292" fill="#a0aec0" font-size="12">2</text>
+  <text x="80" y="292" fill="#2d3748" font-size="13">Check Fraud</text>
+  <rect x="360" y="278" width="56" height="18" rx="9" fill="#e2e8f0"/>
+  <text x="369" y="291" fill="#4a5568" font-size="10" font-weight="600">TASK</text>
+  <rect x="450" y="278" width="86" height="18" rx="9" fill="#c6f6d5"/>
+  <text x="460" y="291" fill="#276749" font-size="10" font-weight="600">COMPLETADO</text>
+  <text x="580" y="292" fill="#718096" font-size="12">19:45:17</text>
+  <text x="720" y="292" fill="#4a5568" font-size="12">8.1s</text>
+  <line x1="32" y1="302" x2="868" y2="302" stroke="#e2e8f0"/>
+
+  <!-- step 3: completed -->
+  <text x="48" y="330" fill="#a0aec0" font-size="12">3</text>
+  <text x="80" y="330" fill="#2d3748" font-size="13">Check Inventory</text>
+  <rect x="360" y="316" width="56" height="18" rx="9" fill="#e2e8f0"/>
+  <text x="369" y="329" fill="#4a5568" font-size="10" font-weight="600">TASK</text>
+  <rect x="450" y="316" width="86" height="18" rx="9" fill="#c6f6d5"/>
+  <text x="460" y="329" fill="#276749" font-size="10" font-weight="600">COMPLETADO</text>
+  <text x="580" y="330" fill="#718096" font-size="12">19:45:25</text>
+  <text x="720" y="330" fill="#4a5568" font-size="12">6.7s</text>
+  <line x1="32" y1="340" x2="868" y2="340" stroke="#e2e8f0"/>
+
+  <!-- step 4: completed -->
+  <text x="48" y="368" fill="#a0aec0" font-size="12">4</text>
+  <text x="80" y="368" fill="#2d3748" font-size="13">Send Notification</text>
+  <rect x="360" y="354" width="56" height="18" rx="9" fill="#e2e8f0"/>
+  <text x="369" y="367" fill="#4a5568" font-size="10" font-weight="600">TASK</text>
+  <rect x="450" y="354" width="86" height="18" rx="9" fill="#c6f6d5"/>
+  <text x="460" y="367" fill="#276749" font-size="10" font-weight="600">COMPLETADO</text>
+  <text x="580" y="368" fill="#718096" font-size="12">19:45:32</text>
+  <text x="720" y="368" fill="#4a5568" font-size="12">2.8s</text>
+  <line x1="32" y1="378" x2="868" y2="378" stroke="#e2e8f0"/>
+
+  <rect x="32" y="436" width="110" height="28" rx="5" fill="white" stroke="#cbd5e0"/>
+  <text x="55" y="455" fill="#4a5568" font-size="12">← Volver</text>
+
+  <!-- note -->
+  <text x="32" y="498" fill="#a0aec0" font-size="11">↻ Auto-recarga cada 5 s para ejecuciones activas — sin intervención manual</text>
+</svg>

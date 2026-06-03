@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% block title %}Detalle{% endblock %}
+
+{% block content %}
+{% if db_error is defined and db_error %}
+<div class="alert alert-warning">
+    &#9888; No se pudo conectar con la base de datos. Verifique el estado del sistema e intente nuevamente.
+    <a href="/workflows" style="margin-left:0.75rem;color:#744210;font-weight:600">Volver al listado</a>
+</div>
+
+{% elif execution is none %}
+<div class="card">
+    <div class="empty-state">
+        <p><strong>Ejecución no encontrada</strong></p>
+        <p><a href="/workflows" class="btn">Volver al listado</a></p>
+    </div>
+</div>
+
+{% else %}
+
+<!-- Execution summary -->
+<div class="card">
+    <h2>
+        {{ execution.name }}
+        <span class="badge badge-{{ execution.status | lower }}" id="exec-status-badge">
+            {% if execution.status == 'Pending' %}Pendiente
+            {% elif execution.status == 'Running' %}Ejecutando
+            {% elif execution.status == 'Completed' %}Completado
+            {% elif execution.status == 'Failed' %}Fallido
+            {% else %}{{ execution.status }}
+            {% endif %}
+        </span>
+    </h2>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-top:0.75rem">
+        <div>
+            <div style="font-size:0.78rem;color:#718096">ID</div>
+            <div style="font-family:monospace;font-size:0.85rem">{{ execution.id }}</div>
+        </div>
+        <div>
+            <div style="font-size:0.78rem;color:#718096">Inicio</div>
+            <div>{{ execution.started_at.strftime('%Y-%m-%d %H:%M:%S') if execution.started_at else '—' }}</div>
+        </div>
+        <div>
+            <div style="font-size:0.78rem;color:#718096">Fin</div>
+            <div>{{ execution.completed_at.strftime('%Y-%m-%d %H:%M:%S') if execution.completed_at else '—' }}</div>
+        </div>
+        <div>
+            <div style="font-size:0.78rem;color:#718096">Duración</div>
+            <div>
+                {% if execution.duration_seconds is not none %}
+                    {{ '%d:%02d' | format(execution.duration_seconds // 60, execution.duration_seconds % 60) }}
+                {% elif execution.status == 'Running' %}
+                    En curso…
+                {% else %}
+                    —
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Steps -->
+<div class="card">
+    <h2>Pasos de ejecución</h2>
+
+    {% if steps %}
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Nombre</th>
+                <th>Tipo</th>
+                <th>Estado</th>
+                <th>Inicio</th>
+                <th>Duración</th>
+                <th>Error</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for step in steps %}
+            <tr {% if step.status == 'Failed' %}style="background:#fff5f5"{% endif %}>
+                <td style="color:#a0aec0;font-size:0.85rem">{{ step.sequence_order }}</td>
+                <td>{{ step.name }}</td>
+                <td><span class="badge badge-pending" style="font-size:0.72rem">{{ step.step_type }}</span></td>
+                <td>
+                    <span class="badge badge-{{ step.status | lower }}">
+                        {% if step.status == 'Pending' %}Pendiente
+                        {% elif step.status == 'Running' %}Ejecutando
+                        {% elif step.status == 'Completed' %}Completado
+                        {% elif step.status == 'Failed' %}Fallido
+                        {% elif step.status == 'Skipped' %}Omitido
+                        {% else %}{{ step.status }}
+                        {% endif %}
+                    </span>
+                </td>
+                <td style="font-size:0.85rem">{{ step.started_at.strftime('%H:%M:%S') if step.started_at else '—' }}</td>
+                <td style="font-size:0.85rem">
+                    {% if step.duration_seconds is not none %}
+                        {{ '%d:%02d' | format(step.duration_seconds // 60, step.duration_seconds % 60) }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                <td style="font-size:0.82rem;color:#9b2c2c">
+                    {% if step.error_message %}
+                        <span title="{{ step.error_message }}">
+                            {{ step.error_message[:80] }}{% if step.error_message|length > 80 %}…{% endif %}
+                        </span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% else %}
+    <div class="empty-state">
+        <p>Esperando que comience la ejecución</p>
+        <p style="font-size:0.85rem">Los pasos aparecerán aquí cuando el workflow empiece a procesarse.</p>
+    </div>
+    {% endif %}
+</div>
+
+<div style="margin-top:0.5rem">
+    <a href="/workflows" class="btn">Volver al listado</a>
+</div>
+
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+{% if execution %}
+<script>
+(function () {
+    const execId = {{ execution.id | tojson }};
+
+    function refresh() {
+        fetch('/api/workflows/' + execId)
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (!data.execution) return;
+                const badge = document.getElementById('exec-status-badge');
+                if (!badge) return;
+                const map = {
+                    Pending: ['badge-pending', 'Pendiente'],
+                    Running: ['badge-running', 'Ejecutando'],
+                    Completed: ['badge-completed', 'Completado'],
+                    Failed: ['badge-failed', 'Fallido'],
+                };
+                const s = data.execution.status;
+                const [cls, lbl] = map[s] || ['badge-pending', s];
+                badge.className = 'badge ' + cls;
+                badge.textContent = lbl;
+
+                // If still running keep polling, otherwise stop
+                if (s === 'Running' || s === 'Pending') {
+                    setTimeout(refresh, 5000);
+                }
+            })
+            .catch(function () {});
+    }
+
+    // Only auto-refresh for active executions
+    {% if execution.status in ('Running', 'Pending') %}
+    setTimeout(refresh, 5000);
+    {% endif %}
+})();
+</script>
+{% endif %}
+{% endblock %}
