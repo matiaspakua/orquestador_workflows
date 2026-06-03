@@ -1,86 +1,145 @@
-# Orquestador de Workflows
+<div align="center">
 
-**Event-driven workflow orchestration system** — 4 microservices coordinated by a central orchestrator through Apache Kafka, with real-time progress visible in a web dashboard, and full infrastructure observability via Prometheus + Grafana + Loki.
+# 🎯 Orquestador de Workflows
 
----
+### Event-driven microservice orchestration with real-time monitoring
 
-## Architecture
+[![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)](https://python.org)
+[![Kafka](https://img.shields.io/badge/Apache%20Kafka-7.4.0-231F20?logo=apachekafka&logoColor=white)](https://kafka.apache.org)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-336791?logo=postgresql&logoColor=white)](https://postgresql.org)
+[![Flask](https://img.shields.io/badge/Flask-3.0-000000?logo=flask&logoColor=white)](https://flask.palletsprojects.com)
+[![Prometheus](https://img.shields.io/badge/Prometheus-2.51-E6522C?logo=prometheus&logoColor=white)](https://prometheus.io)
+[![Grafana](https://img.shields.io/badge/Grafana-10.4-F46800?logo=grafana&logoColor=white)](https://grafana.com)
+[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](https://docker.com)
+[![Tests](https://img.shields.io/badge/Tests-23%20passing-brightgreen)](ui/tests/)
+[![License](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                          EVENT-DRIVEN PIPELINE                          │
-│  ┌─────────────┐   publish    ┌────────────┐   consume   ┌──────────┐  │
-│  │  Producer   │────events───►│   Kafka    │────events──►│Consumer 1│  │
-│  │             │              │  (Broker)  │             ├──────────┤  │
-│  └─────────────┘              └──────┬─────┘             │Consumer 2│  │
-│                                      │                   └──────────┘  │
-│  ┌──────────────────────────────────────────────────────────────────┐  │
-│  │                    WORKFLOW ORCHESTRATION                         │  │
-│  │  ┌────────────┐  task  ┌─────────────────────────────────────┐  │  │
-│  │  │Orchestrator│───────►│            Workers (4 services)     │  │  │
-│  │  │            │◄result─│  1. OrderValidator                  │  │  │
-│  │  │  manages   │        │  2. FraudChecker                    │  │  │
-│  │  │  lifecycle │        │  3. InventoryChecker                │  │  │
-│  │  │            │        │  4. NotificationSender              │  │  │
-│  │  └─────┬──────┘        └─────────────────────────────────────┘  │  │
-│  │        │ writes progress                                          │  │
-│  │        ▼                                                          │  │
-│  │  ┌────────────┐   workflow_executions + workflow_steps            │  │
-│  │  │ PostgreSQL │◄──── visible in Web UI /workflows ─────────────  │  │
-│  │  └────────────┘                                                   │  │
-│  └──────────────────────────────────────────────────────────────────┘  │
-│                                                                         │
-│  ┌──────────────────────────────────────────────────────────────────┐  │
-│  │                    OBSERVABILITY STACK                            │  │
-│  │  Prometheus:9090  Grafana:3000  Loki:3100  Alertmanager:9093     │  │
-│  │  cAdvisor:8082    promtail (log shipping)                        │  │
-│  └──────────────────────────────────────────────────────────────────┘  │
-│                                                                         │
-│  Web UI:5000 │ Kafka UI:8080 │ pgAdmin:8081 │ Grafana:3000            │
-└─────────────────────────────────────────────────────────────────────────┘
-```
+<br/>
 
-### Services
+A complete **event-driven orchestration platform** that coordinates 4 independent microservices through Apache Kafka, tracks every execution step in real time through a web dashboard, and observes the entire stack with Prometheus, Grafana, and Loki — all running locally with a single `docker compose up`.
 
-| Service | Port | Role |
-|---------|------|------|
-| **Orchestrator** | 8000/metrics | Creates & coordinates workflow executions |
-| **Workers** | 8000/metrics | 4 workers: OrderValidator, FraudChecker, InventoryChecker, NotificationSender |
-| **Producer** | 8000/metrics | Generates random domain events → Kafka |
-| **Consumer 1/2** | 8000/metrics | Processes domain events from Kafka → PostgreSQL |
-| **Web UI** | 5000 | Workflow progress dashboard (real-time SSE) |
-| **Kafka** | 9092 | Message broker |
-| **PostgreSQL** | 5432 | State store |
-| **Prometheus** | 9090 | Metrics scraping + alerting |
-| **Grafana** | 3000 | 6 pre-provisioned dashboards |
-| **Loki** | 3100 | Centralized log aggregation |
-| **Alertmanager** | 9093 | Alert routing |
-| **cAdvisor** | 8082 | Container resource metrics |
-| **Kafka UI** | 8080 | Kafka topic browser |
-| **pgAdmin** | 8081 | PostgreSQL admin |
-
-### Order Processing Workflow (4 steps)
-
-```
-[OrderValidator] ──► [FraudChecker] ──► [InventoryChecker] ──► [NotificationSender]
-      │                    │                    │                       │
-  Validates           Flags orders         Confirms items           Sends email
-  amount/fields       > $5,000             in stock                 confirmation
-                      (→ DLQ)              10% stockout (→ DLQ)     Always OK
-```
-
-Each order is a separate workflow execution visible in the Web UI at **`http://localhost:5000/workflows`**.
+</div>
 
 ---
 
-## Quickstart
+## 📸 Screenshots
 
-### 1. Prerequisites
+<table>
+<tr>
+<td width="50%">
+
+**Workflow Execution List** — live status updates via SSE
+
+![Workflow List](docs/screenshots/workflow-list.svg)
+
+</td>
+<td width="50%">
+
+**Step-by-Step Detail** — per-step status, duration & errors
+
+![Workflow Detail](docs/screenshots/workflow-detail.svg)
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+**Grafana: Component Health** — all services at a glance
+
+![Grafana Health](docs/screenshots/grafana-health.svg)
+
+</td>
+<td width="50%">
+
+**4-Service Orchestration Flow** — how the workers connect
+
+![Architecture Flow](docs/screenshots/architecture-flow.svg)
+
+</td>
+</tr>
+</table>
+
+---
+
+## ✨ Features
+
+| | Feature | Detail |
+|---|---------|--------|
+| 🔄 | **Workflow Orchestration** | State-machine lifecycle coordinator — Pending → Running → Completed/Failed |
+| 🧩 | **4 Independent Workers** | OrderValidator · FraudChecker · InventoryChecker · NotificationSender |
+| 📡 | **Real-time UI** | Flask + Server-Sent Events; falls back to 10 s polling; 30 s heartbeat watchdog |
+| 📊 | **6 Grafana Dashboards** | Component health, workflow metrics, message rates, container resources, logs, alerts |
+| 🔍 | **Centralized Logging** | Loki + promtail; JSON-structured logs; searchable by container, severity, or execution ID |
+| 🚨 | **Infrastructure Alerts** | Prometheus rules for CPU/memory/disk (warning >80%, critical >90%); routed via Alertmanager |
+| 🛡️ | **Idempotency & DLQ** | `processed_events` table prevents duplicate processing; `orchestration-dlq` topic for failures |
+| ✅ | **23 Automated Tests** | Flask test-client + mocked DB; covers all routes, SSE, 503 error boundary, edge cases |
+| 📐 | **JSON Schema Contracts** | 8 JSON Schemas (workflow definition, execution, 6 event types) from spec 003 |
+
+---
+
+## 🏗️ Architecture
+
+```
+                        ┌─────────────────────────────────────────┐
+                        │        WORKFLOW ORCHESTRATION            │
+                        │                                          │
+  ┌──────────┐          │  ┌─────────────┐      ┌──────────────┐  │
+  │  Web UI  │◄─reads──►│  │ Orchestrator│─task─►│   Workers   │  │
+  │ :5000    │          │  │             │◄─res──│  (4 threads) │  │
+  └──────────┘          │  └──────┬──────┘      └──────────────┘  │
+                        │         │ writes                          │
+  ┌──────────┐          │  ┌──────▼──────┐  ┌──────────────────┐  │
+  │ Producer │─events──►│  │ PostgreSQL  │  │    Apache Kafka  │  │
+  │          │          │  │             │  │  8 topics · DLQ  │  │
+  └──────────┘          │  └─────────────┘  └──────────────────┘  │
+  ┌──────────┐          └─────────────────────────────────────────┘
+  │Consumer 1│
+  │Consumer 2│          ┌─────────────────────────────────────────┐
+  └──────────┘          │         OBSERVABILITY STACK              │
+                        │  Prometheus · Grafana · Loki · promtail  │
+                        │  Alertmanager · cAdvisor                 │
+                        └─────────────────────────────────────────┘
+```
+
+### The Order Processing Workflow
+
+Every 60 seconds the orchestrator starts a new execution with a random order. The 4 worker services process it sequentially through Kafka — each result is reflected in the UI within seconds.
+
+```
+┌──────────────────┐     ┌──────────────────┐     ┌──────────────────┐     ┌──────────────────┐
+│  OrderValidator  │────►│   FraudChecker   │────►│InventoryChecker  │────►│NotificationSender│
+│                  │     │                  │     │                  │     │                  │
+│ Validates amount │     │ Blocks orders    │     │ Confirms items   │     │ Sends order      │
+│ and item count   │     │ over $5,000      │     │ in stock         │     │ confirmation     │
+│                  │     │ → DLQ on fail    │     │ 10% stockout     │     │ Always succeeds  │
+└──────────────────┘     └──────────────────┘     └──────────────────┘     └──────────────────┘
+```
+
+This creates realistic mixed outcomes visible in the UI:
+
+| Outcome | ~Frequency | Cause |
+|---------|-----------|-------|
+| ✅ All 4 steps green | 75% | Order ≤ $5,000 and stock available |
+| ❌ Failed at FraudChecker | 15% | Order amount > $5,000 |
+| ❌ Failed at InventoryChecker | 10% | Random stockout simulation |
+
+---
+
+## 🚀 Quickstart
+
+### Prerequisites
 
 ```bash
 docker --version        # Docker 24+
 docker compose version  # Compose v2.20+
-cp .env.example .env    # edit credentials if needed
+```
+
+### 1. Clone and configure
+
+```bash
+git clone https://github.com/matiaspakua/orquestador_workflows.git
+cd orquestador_workflows
+cp .env.example .env
 ```
 
 ### 2. Start the full stack
@@ -89,41 +148,34 @@ cp .env.example .env    # edit credentials if needed
 docker compose up --build -d
 ```
 
-Wait ~30 s for Kafka and PostgreSQL to become healthy (`docker compose ps`).
+Wait ~30 seconds for Kafka and PostgreSQL to initialise:
 
-### 3. Open the Web UI
-
-```
-http://localhost:5000/workflows
+```bash
+docker compose ps   # all services should show "healthy" or "running"
 ```
 
-Workflow executions appear every 60 seconds (configurable via `WORKFLOW_INTERVAL`).
-Each execution shows its 4 steps with live status updates — no page refresh needed.
+### 3. Open the interfaces
 
-### 4. Open Grafana
+| Interface | URL | Credentials |
+|-----------|-----|-------------|
+| **Workflow Dashboard** | http://localhost:5000/workflows | — |
+| **Grafana** | http://localhost:3000 | admin / admin |
+| **Prometheus** | http://localhost:9090/targets | — |
+| **Kafka UI** | http://localhost:8080 | — |
+| **pgAdmin** | http://localhost:8081 | admin@event.com / admin123 |
 
-```
-http://localhost:3000   (admin / admin)
-```
+### 4. Watch it run
 
-Pre-provisioned dashboards are available immediately — no manual import required.
-
-### 5. Verify Prometheus targets
-
-```
-http://localhost:9090/targets
-```
-
-All 8 scrape targets should show `UP`.
+After ~60 seconds, workflow executions start appearing in the dashboard. Each execution shows all 4 steps updating live. No page refresh needed.
 
 ---
 
-## Configuration
+## ⚙️ Configuration
 
-All settings live in `.env`:
+All options are in `.env`:
 
 ```dotenv
-# PostgreSQL
+# Database
 POSTGRES_USER=eventuser
 POSTGRES_PASSWORD=eventpass
 POSTGRES_DB=eventdb
@@ -133,163 +185,183 @@ KAFKA_BROKER=kafka:29092
 KAFKA_TOPIC=data-events
 CONSUMER_GROUP=data-processors
 
-# Producer
-PRODUCER_INTERVAL=5       # seconds between generated events
+# Producer — domain events interval (seconds)
+PRODUCER_INTERVAL=5
 
-# Orchestrator
-WORKFLOW_INTERVAL=60      # seconds between new workflow executions
+# Orchestrator — new workflow every N seconds
+WORKFLOW_INTERVAL=60
 ```
 
 ---
 
-## Web UI Guide
+## 📊 Observability
 
-### Workflow List  `http://localhost:5000/workflows`
+### Grafana dashboards (pre-provisioned, no import needed)
 
-- **Status badges**: gray = Pending, blue = Running, green = Completed, red = Failed
-- **Filters**: filter by status, date range, or name search
-- **Real-time**: SSE updates status badges live; falls back to polling every 10 s
+| Dashboard | Key panels |
+|-----------|-----------|
+| **Component Health** | Health status per service, publish/consume rates, error trends |
+| **Workflow Metrics** | Execution counts, p50/p95/p99 duration histogram, error rate over time |
+| **Message Metrics** | Kafka publish/consume rates, consumer lag per partition |
+| **Container Resources** | CPU %, memory %, disk I/O, network per container (cAdvisor) |
+| **Log Explorer** | Full log stream with container and severity filters (Loki) |
+| **Infrastructure Alerts** | Firing alerts table with severity badges, CPU/memory trends |
 
-### Workflow Detail  `http://localhost:5000/workflows/<id>`
+### Key metrics
 
-- Execution summary: name, status, timestamps, total duration
-- Step table: all 4 steps with status, duration, and error message if failed
-- Auto-refreshes every 5 s for Running/Pending executions
+```promql
+# Is every service healthy?
+health_status
 
-### What to expect
+# Workflow success rate
+rate(orchestrator_workflows_completed_total{status="Completed"}[5m])
+  / rate(orchestrator_workflows_completed_total[5m])
 
-| Scenario | Frequency | Why |
-|----------|-----------|-----|
-| Completed (all 4 steps green) | ~75% | Orders ≤ $5,000 with stock |
-| Failed at FraudChecker | ~15% | Orders > $5,000 flagged |
-| Failed at InventoryChecker | ~10% | Random stockout simulation |
+# p95 workflow duration
+histogram_quantile(0.95, rate(orchestrator_workflow_duration_seconds_bucket[5m]))
 
----
-
-## Monitoring Guide
-
-### Grafana Dashboards
-
-| Dashboard | What it shows |
-|-----------|---------------|
-| **Component Health** | Health status, publish/consume rates, errors per service |
-| **Workflow Metrics** | Execution counts, p50/p95/p99 duration histogram, error rate |
-| **Message Metrics** | Kafka publish/consume rates, consumer lag |
-| **Container Resources** | CPU %, memory %, disk I/O, network per container |
-| **Log Explorer** | Full log stream with container + severity filters (Loki) |
-| **Infrastructure Alerts** | Firing/resolved alerts table with severity badges |
-
-### Key Prometheus metrics
-
-| Metric | Source |
-|--------|--------|
-| `health_status{component=X}` | all services |
-| `orchestrator_workflows_completed_total{status}` | orchestrator |
-| `orchestrator_workflow_duration_seconds` | orchestrator |
-| `worker_tasks_processed_total{worker,status}` | workers |
-| `messages_published_total` / `messages_consumed_total` | producer/consumer |
-| `consumer_lag{topic,partition}` | consumer |
+# Consumer lag
+consumer_lag
+```
 
 ### Loki log queries
 
 ```logql
-# All errors
-{container=~".+"} | json | level = "ERROR"
-
-# Trace one workflow execution
+# Trace one workflow execution end-to-end
 {container=~".+"} | json | workflow_execution_id = "<uuid>"
 
-# Worker failures
+# All worker failures
 {container="workers"} | json | level = "ERROR"
+
+# Fraud checks that failed
+{container="workers"} | json | message =~ "(?i)fraud"
 ```
-
-See [`docs/loki-queries.md`](docs/loki-queries.md) for more presets.
-
-### Alerts
-
-Prometheus fires alerts (via Alertmanager) when:
-
-| Alert | Threshold | Duration |
-|-------|-----------|----------|
-| `ContainerCPUWarning` | CPU > 80% | 2 min |
-| `ContainerCPUCritical` | CPU > 90% | 2 min |
-| `ContainerMemoryWarning` | Memory > 80% | 2 min |
-| `ContainerMemoryCritical` | Memory > 90% | 2 min |
-| `ContainerDiskWarning` | Disk I/O > 80% | 5 min |
-| `ContainerDiskCritical` | Disk I/O > 90% | 5 min |
 
 ---
 
-## Development
+## 🧪 Testing
 
-### Run UI tests
+### Unit + integration tests (UI layer)
 
 ```bash
 cd ui && python3 -m pytest tests/ -v
-# 23 tests, all routes, SSE, error boundary, 503 on DB failure
+# 23 tests · all routes · SSE · 503 error boundary · DB failure handling
 ```
 
-### Run integration tests (requires Docker)
+### Full integration test suite (requires Docker)
 
 ```bash
 docker compose -f docker-compose.test.yml up --build
+# Tests: end-to-end message flow, error handling, orchestrator coordination, performance
 ```
-
-### Create Kafka topics explicitly
-
-```bash
-docker compose exec kafka /scripts/init-topics.sh
-```
-
-### Add a new workflow step
-
-1. Add the step to `orchestrator/app.py` → `WORKFLOW_DEF['steps']`
-2. Add the worker function to `workers/app.py` → `WORKERS` list
-3. Add the topic to `scripts/init-topics.sh`
-4. Restart: `docker compose restart orchestrator workers`
 
 ---
 
-## Project Structure
+## 📁 Project Structure
 
 ```
 orquestador_workflows/
-├── orchestrator/          # Workflow lifecycle manager (state machine + Kafka)
-├── workers/               # 4 worker services (one process, 4 threads)
-├── producer/              # Domain event generator
-├── consumer/              # Domain event processor (2 instances)
-├── ui/                    # Flask web dashboard + SSE + 23 tests
-├── prometheus/            # Scrape config + recording rules + alert rules
-├── grafana/               # 6 pre-provisioned dashboards + datasources
-├── loki/                  # Log aggregation config (7-day retention)
-├── promtail/              # Log shipping (docker_sd_configs)
-├── alertmanager/          # Alert routing + inhibit rules
-├── docs/                  # Workflow lifecycle, step types, event schemas
-│   └── schemas/           # JSON Schema for 8 workflow/event types
-├── scripts/               # SQL init (DB, workflow tables, idempotency)
-│   └── init-topics.sh     # Explicit Kafka topic creation
-├── specs/                 # 5 feature specifications (001-005)
-├── docker-compose.yml     # Full 14-service stack
-└── docker-compose.test.yml# Integration test overlay
+├── orchestrator/              # Workflow state machine (creates/tracks executions)
+│   ├── app.py                 # Lifecycle management + Kafka task dispatch
+│   ├── Dockerfile
+│   └── requirements.txt
+│
+├── workers/                   # 4 worker services in one process
+│   ├── app.py                 # OrderValidator · FraudChecker · InventoryChecker · NotificationSender
+│   ├── Dockerfile
+│   └── requirements.txt
+│
+├── producer/                  # Domain event generator (Faker → Kafka → PostgreSQL)
+├── consumer/                  # Domain event processor (2 instances, idempotent)
+│
+├── ui/                        # Flask dashboard
+│   ├── app.py                 # Routes: /workflows, /workflows/<id>, /api/workflows/stream (SSE)
+│   ├── services/              # Parameterised DB queries with filter/pagination
+│   ├── templates/             # base.html · workflow_list.html · workflow_detail.html
+│   └── tests/                 # 23 pytest tests (mocked DB, all routes)
+│
+├── prometheus/                # Scrape config + recording rules + alert rules
+├── grafana/provisioning/      # 6 dashboard JSONs + datasources (Prometheus + Loki)
+├── loki/                      # 7-day log retention config
+├── promtail/                  # docker_sd_configs → JSON pipeline stage
+├── alertmanager/              # Webhook routing + inhibit rules
+│
+├── docs/
+│   ├── workflow-lifecycle.md  # State machine + 10 validation rules
+│   ├── step-types.md          # Task · Decision · Parallel · Wait
+│   ├── event-flow.md          # Kafka event sequence + correlation guide
+│   ├── loki-queries.md        # LogQL presets
+│   ├── schemas/               # 8 JSON Schemas (workflow definition + 6 event types)
+│   ├── examples/              # three-step-workflow.json reference example
+│   └── screenshots/           # UI and dashboard screenshots
+│
+├── scripts/
+│   ├── init-db.sql            # Core tables (event_data, event_logs)
+│   ├── init-workflow-db.sql   # workflow_executions + workflow_steps
+│   ├── init-idempotency.sql   # processed_events (dedup) + dead_letter_events
+│   └── init-topics.sh         # Explicit Kafka topic creation (8 topics)
+│
+├── specs/                     # 5 feature specifications (001-005) — all complete
+├── docker-compose.yml         # 14-service full stack
+├── docker-compose.test.yml    # Integration test overlay
+└── .env.example               # Configuration template
 ```
 
 ---
 
-## Security Notes
+## 🛠️ Tech Stack
 
-- **`.env` is gitignored** — never commit it; use `.env.example` as the template.
-- `pgAdmin` credentials in `docker-compose.yml` are for local development only.
-- Flask runs with `debug=False` by default (`FLASK_DEBUG=0`).
-- Prometheus metrics endpoints are on the internal Docker network only.
+| Layer | Technology |
+|-------|-----------|
+| **Language** | Python 3.11 |
+| **Messaging** | Apache Kafka 7.4.0 (kafka-python) |
+| **Database** | PostgreSQL 15 (psycopg2) |
+| **Web** | Flask 3.0 + Jinja2 + SSE |
+| **Metrics** | Prometheus 2.51 + prometheus_client |
+| **Dashboards** | Grafana 10.4 |
+| **Logging** | Loki 2.9 + promtail + python-json-logger |
+| **Alerts** | Alertmanager 0.27 |
+| **Container metrics** | cAdvisor 0.49 |
+| **Testing** | pytest 8.1 + Flask test client |
+| **Container runtime** | Docker Compose v2 |
 
 ---
 
-## Feature Status
+## 📐 Feature Specifications
 
-| Feature | Status | Description |
-|---------|--------|-------------|
-| [001 Workflow Progress UI](specs/001-workflow-progress-ui/) | ✅ Complete | Real-time dashboard, SSE, filters, 23 tests |
-| [002 Grafana Telemetry](specs/002-grafana-telemetry/) | ✅ Complete | Prometheus metrics on all services + 3 dashboards |
-| [003 Workflow Definition](specs/003-workflow-definition/) | ✅ Complete | Lifecycle docs, step types, 8 JSON schemas |
-| [004 Prometheus Monitoring](specs/004-prometheus-monitoring/) | ✅ Complete | cAdvisor, Loki, alerts, 3 more dashboards |
-| [005 Producer-Consumer Test](specs/005-producer-consumer-test/) | ✅ Complete | Full integration test suite |
+All 5 features were designed spec-first and are fully implemented:
+
+| # | Feature | Tasks | Status |
+|---|---------|-------|--------|
+| [001](specs/001-workflow-progress-ui/) | Workflow Progress UI | 39 | ✅ Complete |
+| [002](specs/002-grafana-telemetry/) | Grafana Telemetry | 21 | ✅ Complete |
+| [003](specs/003-workflow-definition/) | Workflow Definition Schemas | 26 | ✅ Complete |
+| [004](specs/004-prometheus-monitoring/) | Prometheus Monitoring | 27 | ✅ Complete |
+| [005](specs/005-producer-consumer-test/) | Integration Test Suite | 28 | ✅ Complete |
+
+**141 tasks** across 5 specs — all implemented and tracked in `specs/*/tasks.md`.
+
+---
+
+## 🔒 Security Notes
+
+- **`.env` is gitignored** — never commit it; use `.env.example` as the template
+- Flask runs with `debug=False` by default (`FLASK_DEBUG=0`)
+- Prometheus `/metrics` endpoints are on the internal Docker network only
+- All Kafka messages use `enable_auto_commit=False` — offsets committed only on successful processing
+
+---
+
+## 📄 License
+
+MIT — see [LICENSE](LICENSE)
+
+---
+
+<div align="center">
+
+Built as a portfolio project demonstrating event-driven architecture, real-time observability, and spec-first development.
+
+*Python · Kafka · PostgreSQL · Flask · Prometheus · Grafana · Loki · Docker*
+
+</div>

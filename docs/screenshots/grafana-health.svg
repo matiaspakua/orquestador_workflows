@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="500" font-family="'Segoe UI',sans-serif">
+  <rect width="900" height="500" fill="#161719"/>
+  <!-- top bar -->
+  <rect width="900" height="48" fill="#1f2028"/>
+  <text x="16" y="31" fill="#e0e0e0" font-size="16" font-weight="600">Component Health</text>
+  <text x="700" y="20" fill="#aaa" font-size="11">Last 1 hour</text>
+  <rect x="700" y="26" width="90" height="16" rx="3" fill="#2c2e3a"/>
+  <text x="715" y="38" fill="#d0d0d0" font-size="11">now-1h → now</text>
+  <text x="810" y="31" fill="#73bf69" font-size="13">● 5s</text>
+
+  <!-- stat panels row -->
+  <!-- Producer: Healthy -->
+  <rect x="12" y="60" width="180" height="90" rx="4" fill="#1f2028"/>
+  <text x="24" y="82" fill="#aaa" font-size="12">Producer Health</text>
+  <text x="24" y="128" fill="#73bf69" font-size="38" font-weight="300">Healthy</text>
+
+  <!-- Consumer-1: Healthy -->
+  <rect x="204" y="60" width="180" height="90" rx="4" fill="#1f2028"/>
+  <text x="216" y="82" fill="#aaa" font-size="12">Consumer-1 Health</text>
+  <text x="216" y="128" fill="#73bf69" font-size="38" font-weight="300">Healthy</text>
+
+  <!-- Consumer-2: Healthy -->
+  <rect x="396" y="60" width="180" height="90" rx="4" fill="#1f2028"/>
+  <text x="408" y="82" fill="#aaa" font-size="12">Consumer-2 Health</text>
+  <text x="408" y="128" fill="#73bf69" font-size="38" font-weight="300">Healthy</text>
+
+  <!-- Orchestrator: Healthy -->
+  <rect x="588" y="60" width="180" height="90" rx="4" fill="#1f2028"/>
+  <text x="600" y="82" fill="#aaa" font-size="12">Orchestrator Health</text>
+  <text x="600" y="128" fill="#73bf69" font-size="38" font-weight="300">Healthy</text>
+
+  <!-- Workers: Healthy -->
+  <rect x="705" y="60" width="180" height="90" rx="4" fill="#1f2028"/>
+  <text x="717" y="82" fill="#aaa" font-size="12">Workers Health</text>
+  <text x="717" y="128" fill="#73bf69" font-size="38" font-weight="300">Healthy</text>
+
+  <!-- Publish Rate panel -->
+  <rect x="12" y="164" width="440" height="160" rx="4" fill="#1f2028"/>
+  <text x="24" y="186" fill="#aaa" font-size="12">Publish Rate (msg/s)</text>
+  <!-- sparkline approximation -->
+  <polyline points="24,300 70,280 120,290 170,265 220,275 270,258 320,270 370,252 420,260" fill="none" stroke="#5794f2" stroke-width="2"/>
+  <polyline points="24,300 70,280 120,290 170,265 220,275 270,258 320,270 370,252 420,260 420,310 24,310" fill="rgba(87,148,242,0.1)"/>
+  <text x="24" y="320" fill="#666" font-size="10">19:00</text>
+  <text x="410" y="320" fill="#666" font-size="10">20:00</text>
+
+  <!-- Workflow Completions panel -->
+  <rect x="464" y="164" width="424" height="160" rx="4" fill="#1f2028"/>
+  <text x="476" y="186" fill="#aaa" font-size="12">Workflow Completions / Failures</text>
+  <polyline points="476,300 520,295 570,285 620,290 670,275 720,280 770,268 820,272 870,260" fill="none" stroke="#73bf69" stroke-width="2"/>
+  <polyline points="476,310 520,308 570,310 620,309 670,307 720,309 770,306 820,308 870,305" fill="none" stroke="#f2495c" stroke-width="2"/>
+  <rect x="476" y="192" width="10" height="2" fill="#73bf69"/>
+  <text x="490" y="202" fill="#aaa" font-size="10">Completed</text>
+  <rect x="556" y="192" width="10" height="2" fill="#f2495c"/>
+  <text x="570" y="202" fill="#aaa" font-size="10">Failed</text>
+
+  <!-- Errors panel -->
+  <rect x="12" y="336" width="876" height="120" rx="4" fill="#1f2028"/>
+  <text x="24" y="358" fill="#aaa" font-size="12">Error Rate — All Services (5m rate)</text>
+  <polyline points="24,440 120,440 200,435 280,438 360,436 440,440 520,432 600,440 680,435 760,440 840,438 876,440" fill="none" stroke="#ff9830" stroke-width="2"/>
+  <polyline points="24,440 120,440 200,435 280,438 360,436 440,440 520,432 600,440 680,435 760,440 840,438 876,440 876,445 24,445" fill="rgba(255,152,48,0.1)"/>
+  <text x="24" y="452" fill="#666" font-size="10">19:00</text>
+  <text x="855" y="452" fill="#666" font-size="10">20:00</text>
+  <text x="380" y="390" fill="#73bf69" font-size="11">≈ 0 errors/s steady state</text>
+</svg>
