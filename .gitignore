@@ -12,6 +12,10 @@ build/
 *.egg
 .venv/
 venv/
+.pytest_cache/
+
+# Test artifacts (feature 005 integration suite)
+test-results/
 
 # Compiled class file
 *.class

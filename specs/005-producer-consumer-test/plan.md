@@ -12,7 +12,7 @@ Integration tests that validate end-to-end message flow from producer through Ka
 
 ## Technical Context
 
-**Language/Version**: Python 3.14
+**Language/Version**: Python 3.11 (matches existing producer/consumer Dockerfiles `python:3.11-slim` and research.md)
 
 **Primary Dependencies**: Kafka client libraries, Docker Compose, testing frameworks, PostgreSQL client, gRPC tooling, REST client libraries
 
