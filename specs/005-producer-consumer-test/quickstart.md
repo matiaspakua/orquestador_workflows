@@ -16,7 +16,7 @@ docker-compose -f docker-compose.test.yml up --build
 ### Run a specific test scenario
 
 ```bash
-docker-compose -f docker-compose.test.yml run --rm test-runner pytest producer/tests/integration/test_message_flow.py -v
+docker-compose -f docker-compose.test.yml run --rm test-runner pytest producer/tests/integration/test_message_flow.py consumer/tests/integration/test_consumer_message_flow.py -v
 ```
 
 ### CI invocation (clean exit code)
@@ -39,9 +39,9 @@ exit $rc
 
 | Scenario | Command | Expected Duration |
 |----------|---------|-----------------|
-| End-to-end message flow | `pytest tests/integration/test_message_flow.py` | < 30s |
-| Error handling (Kafka down) | `pytest tests/integration/test_error_handling.py` | < 60s |
-| Orchestrator coordination | `pytest tests/integration/test_orchestrator.py` | < 45s |
+| End-to-end message flow | `pytest producer/tests/integration/test_message_flow.py` | < 30s |
+| Error handling | `pytest producer/tests/integration/test_error_handling.py consumer/tests/integration/test_consumer_error_handling.py` | < 60s |
+| Orchestrator coordination | `pytest producer/tests/integration/test_orchestrator.py consumer/tests/integration/test_consumer_orchestrator.py` | < 45s |
 | Full suite | `docker-compose -f docker-compose.test.yml up` | < 5 min |
 
 ## Interpreting Results

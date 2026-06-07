@@ -11,7 +11,10 @@ import os
 
 import pytest
 
-from tests_support.kafka_topics import TestTopicManager
+try:
+    from tests_support.kafka_topics import TestTopicManager
+except ImportError:
+    TestTopicManager = None  # kafka not installed; integration tests only
 
 
 @pytest.fixture(scope="session")
@@ -33,6 +36,9 @@ def _purge_orphan_topics(bootstrap_servers: str):
     Implements the run-start auto-cleanup decision so an aborted previous run
     cannot interfere with this one.
     """
+    if TestTopicManager is None:
+        yield
+        return
     mgr = TestTopicManager(bootstrap_servers)
     try:
         mgr.purge_orphans()
@@ -42,12 +48,14 @@ def _purge_orphan_topics(bootstrap_servers: str):
 
 
 @pytest.fixture
-def topic_manager(bootstrap_servers: str) -> TestTopicManager:
+def topic_manager(bootstrap_servers: str):
     """A per-test topic manager with a unique scenario id; auto-cleans topics.
 
     Each test gets isolated ``test.{scenario_id}.{suffix}`` topics that are
     deleted on teardown (test isolation, T021).
     """
+    if TestTopicManager is None:
+        pytest.skip("kafka module not installed")
     mgr = TestTopicManager(bootstrap_servers)
     try:
         yield mgr

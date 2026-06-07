@@ -1,0 +1,82 @@
+syntax = "proto3";
+
+package workflow;
+
+service WorkflowOrchestrator {
+  rpc StartWorkflow(StartWorkflowRequest) returns (WorkflowResponse);
+  rpc GetWorkflowStatus(WorkflowStatusRequest) returns (WorkflowStatusResponse);
+  rpc CancelWorkflow(CancelWorkflowRequest) returns (WorkflowResponse);
+  rpc ListWorkflows(ListWorkflowsRequest) returns (ListWorkflowsResponse);
+  rpc StreamWorkflowEvents(StreamRequest) returns (stream WorkflowEvent);
+}
+
+message StartWorkflowRequest {
+  string workflow_name = 1;
+  string workflow_version = 2;
+  map<string, string> input_params = 3;
+  int32 timeout_seconds = 4;
+}
+
+message WorkflowStatusRequest {
+  string workflow_execution_id = 1;
+}
+
+message CancelWorkflowRequest {
+  string workflow_execution_id = 1;
+  string reason = 2;
+}
+
+message ListWorkflowsRequest {
+  int32 page = 1;
+  int32 per_page = 2;
+  string status_filter = 3;
+  string date_from = 4;
+  string date_to = 5;
+}
+
+message StreamRequest {
+  string workflow_execution_id = 1;
+  string event_types = 2;
+}
+
+message WorkflowResponse {
+  bool success = 1;
+  string message = 2;
+  string workflow_execution_id = 3;
+}
+
+message WorkflowStatusResponse {
+  string workflow_execution_id = 1;
+  string status = 2;
+  string name = 3;
+  string started_at = 4;
+  string completed_at = 5;
+  int32 duration_seconds = 6;
+  repeated StepStatus steps = 7;
+}
+
+message StepStatus {
+  string id = 1;
+  string name = 2;
+  string step_type = 3;
+  string status = 4;
+  string started_at = 5;
+  string completed_at = 6;
+  int32 duration_seconds = 7;
+  string error_message = 8;
+  int32 sequence_order = 9;
+}
+
+message ListWorkflowsResponse {
+  repeated WorkflowStatusResponse executions = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 per_page = 4;
+}
+
+message WorkflowEvent {
+  string event_type = 1;
+  string workflow_execution_id = 2;
+  string timestamp = 3;
+  string payload = 4;
+}

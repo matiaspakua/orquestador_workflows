@@ -9,4 +9,13 @@ Full project architecture:
 - specs/003-workflow-definition/ — Workflow lifecycle, step types, orchestration event schemas (JSON Schema, Kafka events)
 - specs/004-prometheus-monitoring/ — Infrastructure monitoring: Prometheus + cAdvisor + Loki + Alertmanager
 - specs/005-producer-consumer-test/ — Integration test suite for producer → Kafka → consumer message flow
+
+Testing:
+- Unit tests: `python -m pytest ui/tests/ common/ -v`
+- E2E tests: `E2E_TESTS=1 python -m pytest ui/tests_e2e/ -v`
+- Integration tests: `python -m pytest common/test_integration_grpc.py -v`
+- Full suite: `scripts/run-all-tests.sh`
+- Integration (Docker): `docker compose -f docker-compose.test.yml up --build`
+- Integration suite (single run): `docker compose -f docker-compose.test.yml run --rm test-runner`
+- Repeatability check: `REPEAT=3 docker compose -f docker-compose.test.yml run --rm test-runner`
 <!-- SPECKIT END -->

@@ -50,42 +50,44 @@ No other transitions are valid. Terminal states are immutable.
 
 ---
 
-## Entry and Exit Conditions
-
-### Pending
-- **Entry**: Workflow submission received with valid definition
-- **Exit to Running**: Orchestrator has capacity and all `depends_on` workflows (if any) are satisfied
-- **Exit to Cancelled**: Operator sends cancel request
-
-### Running
-- **Entry**: All Pending pre-conditions met; first step enqueued
-- **Exit to Completed**: Last step transitions to Completed with no pending branches
-- **Exit to Failed**: A step transitions to Failed, `on_failure` is `__fail__`, and retry budget is exhausted (or `max_attempts` = 1)
-- **Exit to Cancelled**: Operator cancel request received; in-flight steps are interrupted
-
-### Completed / Failed / Cancelled
-- **Entry**: Transition from Running or (Cancelled) from Pending
-- **Exit**: None — terminal states are immutable
-
----
-
 ## Submission Validation Rules
-
-A workflow submission is rejected before execution begins if any of the following are true:
 
 1. **Step ID uniqueness**: Two or more steps share the same `id`
 2. **Circular dependency**: The `depends_on` graph contains a cycle
 3. **Invalid step name**: A step `name` is empty or exceeds 255 characters
 4. **Invalid timeout**: A `timeout_seconds` value is ≤ 0 or is not an integer
 5. **Invalid retry policy**: `max_attempts` < 1 or `backoff_seconds` < 0
-6. **Decision branch count**: A Decision step has fewer than 2 branches or more than 2 branches (true/false only)
+6. **Decision branch count**: A Decision step has fewer than 2 branches or more than 2 branches
 7. **Parallel minimum branches**: A Parallel step has fewer than 2 branches
 8. **Per-type config missing**: A Task step is missing `action` or `target`
 9. **Minimum step count**: The `steps` array is empty
-10. **Dead `depends_on` reference**: A step references a `depends_on` ID that does not exist in the definition
+10. **Dead `depends_on` reference**: A step references a `depends_on` ID that does not exist
 
 ---
 
-## Concurrent Execution
+## Testing the Lifecycle
 
-See `docs/concurrent-execution.md` for details on resource contention and isolation guarantees.
+### REST API
+
+```bash
+# List all workflows
+curl http://localhost:5000/api/workflows
+
+# Get workflow detail
+curl http://localhost:5000/api/workflows/<execution_id>
+
+# Check system health
+curl http://localhost:5000/health
+```
+
+### gRPC API
+
+```python
+import grpc
+from workflow_service_pb2_grpc import WorkflowOrchestratorStub
+from workflow_service_pb2 import ListWorkflowsRequest
+
+channel = grpc.insecure_channel("localhost:50051")
+stub = WorkflowOrchestratorStub(channel)
+response = stub.ListWorkflows(ListWorkflowsRequest(page=1, per_page=10))
+```

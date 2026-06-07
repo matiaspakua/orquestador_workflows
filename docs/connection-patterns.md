@@ -8,14 +8,6 @@ Steps execute one after the other using `depends_on`.
 [Step A] ──► [Step B] ──► [Step C]
 ```
 
-```json
-[
-  { "id": "a", "name": "Step A", "type": "Task", ... },
-  { "id": "b", "name": "Step B", "type": "Task", "depends_on": ["a"], ... },
-  { "id": "c", "name": "Step C", "type": "Task", "depends_on": ["b"], ... }
-]
-```
-
 ---
 
 ## Parallel Execution (Independent Steps)
@@ -26,15 +18,6 @@ Steps with no shared `depends_on` are eligible to run concurrently.
           ┌─► [Step B] ─┐
 [Step A] ─┤              ├─► [Step D]
           └─► [Step C] ─┘
-```
-
-```json
-[
-  { "id": "a", "name": "Step A", ... },
-  { "id": "b", "name": "Step B", "depends_on": ["a"], ... },
-  { "id": "c", "name": "Step C", "depends_on": ["a"], ... },
-  { "id": "d", "name": "Step D", "depends_on": ["b", "c"], ... }
-]
 ```
 
 ---
@@ -48,51 +31,11 @@ A Decision step routes to one of two paths based on a runtime condition.
                         └──false──► [Step C]
 ```
 
-```json
-[
-  { "id": "a", "name": "Step A", "type": "Task", ... },
-  {
-    "id": "d", "name": "Check condition", "type": "Decision",
-    "depends_on": ["a"],
-    "config": {
-      "condition": "{{result.approved}} == true",
-      "branches": { "true": "b", "false": "c" }
-    }
-  },
-  { "id": "b", "name": "Approved path", "type": "Task", ... },
-  { "id": "c", "name": "Rejected path", "type": "Task", ... }
-]
-```
-
 ---
 
 ## Structured Parallelism (Parallel Step)
 
 A Parallel step runs N isolated branch sequences concurrently.
-
-```
-           ┌─► [Branch 1: Task1a → Task1b] ─┐
-[Step A] ──┤                                 ├─► [Step C]
-           └─► [Branch 2: Task2a]           ─┘
-```
-
-```json
-[
-  { "id": "a", "name": "Step A", "type": "Task", ... },
-  {
-    "id": "p", "name": "Parallel notifications", "type": "Parallel",
-    "depends_on": ["a"],
-    "config": {
-      "completion_policy": "all",
-      "branches": [
-        { "steps": [{ "id": "t1a", ... }, { "id": "t1b", ... }] },
-        { "steps": [{ "id": "t2a", ... }] }
-      ]
-    }
-  },
-  { "id": "c", "name": "Step C", "type": "Task", "depends_on": ["p"], ... }
-]
-```
 
 ---
 
@@ -100,18 +43,51 @@ A Parallel step runs N isolated branch sequences concurrently.
 
 Steps can route to compensating steps on failure instead of failing the entire workflow.
 
-```
-[Step A] ──► [Step B] ──failure──► [Compensate B] ──► [Step C]
-                      └──success──────────────────────► [Step C]
-```
+---
 
-```json
-[
-  { "id": "a", ... },
-  { "id": "b", ..., "on_failure": "compensate_b" },
-  { "id": "compensate_b", "name": "Compensate Step B", "type": "Task", ... },
-  { "id": "c", "depends_on": ["b", "compensate_b"], ... }
-]
+## REST API Integration
+
+The system exposes a REST API at port 5000:
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Health check |
+| `/ready` | GET | Readiness check (includes DB check) |
+| `/api/workflows` | GET | List all workflow executions |
+| `/api/workflows/<id>` | GET | Get workflow detail |
+| `/api/workflows/stream` | GET | SSE stream for live updates |
+| `/api/stats` | GET | System statistics |
+| `/api/consumers` | GET | Consumer statistics |
+| `/api/events/<type>` | GET | Events by type |
+
+## gRPC API Integration
+
+The system also exposes a gRPC API at port 50051:
+
+| Service | Method | Description |
+|---------|--------|-------------|
+| `WorkflowOrchestrator` | `GetWorkflowStatus` | Get workflow execution status |
+| `WorkflowOrchestrator` | `ListWorkflows` | List workflow executions |
+| `WorkflowOrchestrator` | `StartWorkflow` | Start a new workflow |
+| `WorkflowOrchestrator` | `CancelWorkflow` | Cancel a running workflow |
+| `WorkflowOrchestrator` | `StreamWorkflowEvents` | Stream workflow events |
+
+Both APIs provide the same capabilities — use REST for HTTP clients and gRPC for high-performance streaming scenarios.
+
+### gRPC Client Example
+
+```python
+import grpc
+from workflow_service_pb2_grpc import WorkflowOrchestratorStub
+from workflow_service_pb2 import WorkflowStatusRequest
+
+channel = grpc.insecure_channel("localhost:50051")
+stub = WorkflowOrchestratorStub(channel)
+resp = stub.GetWorkflowStatus(
+    WorkflowStatusRequest(workflow_execution_id="abc-123")
+)
+print(resp.status)
+channel.close()
 ```
 
 ---

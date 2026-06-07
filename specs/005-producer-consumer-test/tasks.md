@@ -57,12 +57,12 @@ Tests live under each component's `tests/` directory:
 
 **Goal**: Verify that a message flows correctly from producer through Kafka to consumer, with correct payload integrity and ordering
 
-**Independent Test**: Run `pytest tests/integration/test_message_flow.py -v` — sends a known message from producer and verifies consumer receives exact same payload
+**Independent Test**: Run `pytest producer/tests/integration/test_message_flow.py consumer/tests/integration/test_consumer_message_flow.py -v` — sends a known message from producer and verifies consumer receives exact same payload
 
 ### Implementation for User Story 1
 
 - [X] T008 [P] [US1] `depends_on: T003, T004, T005` Implement producer test harness that publishes a message with known payload and sequence number to a test topic in producer/tests/integration/test_message_flow.py
-- [X] T009 [P] [US1] `depends_on: T003, T004, T006` Implement consumer test harness that subscribes to the test topic and captures received messages in consumer/tests/integration/test_message_flow.py
+- [X] T009 [P] [US1] `depends_on: T003, T004, T006` Implement consumer test harness that subscribes to the test topic and captures received messages in consumer/tests/integration/test_consumer_message_flow.py
 - [X] T010 [US1] `depends_on: T008, T009` Implement end-to-end message flow test that publishes 1 message and asserts consumer receives it within 30s (SC-001) in producer/tests/integration/test_message_flow.py
 - [X] T011 [US1] `depends_on: T008, T009` Implement payload integrity test that publishes a message with structured JSON payload and asserts consumed payload matches exactly (FR-002) in producer/tests/integration/test_message_flow.py
 - [X] T012 [US1] `depends_on: T008, T009` Implement message ordering test that publishes 10 messages with sequential ordering_key values to a single-partition test topic and asserts consumer receives them in the same order (FR-003) in producer/tests/integration/test_message_flow.py
@@ -76,14 +76,14 @@ Tests live under each component's `tests/` directory:
 
 **Goal**: Verify that producer and consumer handle errors gracefully — Kafka unavailability, invalid messages, network interruptions
 
-**Independent Test**: Run `pytest tests/integration/test_error_handling.py -v` — simulates each failure scenario in isolation and verifies graceful handling
+**Independent Test**: Run `pytest producer/tests/integration/test_error_handling.py consumer/tests/integration/test_consumer_error_handling.py -v` — simulates each failure scenario in isolation and verifies graceful handling
 
 ### Implementation for User Story 2
 
 - [X] T013 [P] [US2] `depends_on: T003, T004, T005, T007` Implement Kafka unavailable test that stops Kafka container, verifies producer retries 3 times with exponential backoff per contract retry policy (FR-004), and does not crash in producer/tests/integration/test_error_handling.py
-- [X] T014 [P] [US2] `depends_on: T003, T004, T006, T007` Implement invalid message test that publishes a malformed message to the test topic and asserts consumer logs the error and continues processing (FR-005) in consumer/tests/integration/test_error_handling.py
-- [X] T015 [US2] `depends_on: T003, T004, T006, T007` Implement network interruption test that simulates consumer disconnect by stopping the consumer container, verifies resume from last confirmed offset without data loss or duplication (FR-006) in consumer/tests/integration/test_error_handling.py
-- [X] T024 [P] [US2] `depends_on: T003, T004, T006, T007` Implement duplicate message test that publishes the same message_id twice and asserts consumer processes it only once (EC-2, idempotency) in consumer/tests/integration/test_error_handling.py
+- [X] T014 [P] [US2] `depends_on: T003, T004, T006, T007` Implement invalid message test that publishes a malformed message to the test topic and asserts consumer logs the error and continues processing (FR-005) in consumer/tests/integration/test_consumer_error_handling.py
+- [X] T015 [US2] `depends_on: T003, T004, T006, T007` Implement network interruption test that simulates consumer disconnect by stopping the consumer container, verifies resume from last confirmed offset without data loss or duplication (FR-006) in consumer/tests/integration/test_consumer_error_handling.py
+- [X] T024 [P] [US2] `depends_on: T003, T004, T006, T007` Implement duplicate message test that publishes the same message_id twice and asserts consumer processes it only once (EC-2, idempotency) in consumer/tests/integration/test_consumer_error_handling.py
 - [X] T025 [P] [US2] `depends_on: T003, T004, T005, T007` Implement large payload test that publishes a message near the Kafka size limit and asserts consumer handles it with clear error messaging or processes it successfully (EC-3) in producer/tests/integration/test_error_handling.py
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently
@@ -94,12 +94,12 @@ Tests live under each component's `tests/` directory:
 
 **Goal**: Verify that the orchestrator correctly coordinates producer and consumer activities — start, monitor, stop, cancel workflows
 
-**Independent Test**: Run `pytest tests/integration/test_orchestrator.py -v` — runs a complete workflow cycle and verifies each orchestration step
+**Independent Test**: Run `pytest producer/tests/integration/test_orchestrator.py consumer/tests/integration/test_consumer_orchestrator.py -v` — runs a complete workflow cycle and verifies each orchestration step
 
 ### Implementation for User Story 3
 
 - [X] T016 [P] [US3] `depends_on: T008, T009` Implement orchestrator workflow start test that initiates a workflow, verifies producer begins publishing and consumer begins processing (FR-007) in producer/tests/integration/test_orchestrator.py
-- [X] T017 [P] [US3] `depends_on: T008, T009` Implement workflow completion test that runs a full publish-consume cycle and asserts orchestrator marks workflow as Completed with persisted results (FR-007) in consumer/tests/integration/test_orchestrator.py
+- [X] T017 [P] [US3] `depends_on: T008, T009` Implement workflow completion test that runs a full publish-consume cycle and asserts orchestrator marks workflow as Completed with persisted results (FR-007) in consumer/tests/integration/test_consumer_orchestrator.py
 - [X] T018 [US3] `depends_on: T008, T009` Implement workflow cancellation test that cancels a running workflow and asserts producer stops publishing and consumer stops processing for that workflow (FR-008) in producer/tests/integration/test_orchestrator.py
 
 **Checkpoint**: All user stories should now be independently functional
@@ -110,7 +110,7 @@ Tests live under each component's `tests/` directory:
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [X] T019 [P] `depends_on: T003, T004, T006` Add performance benchmark test that verifies consumer processes 1,000 messages without data loss or corruption (SC-003) in consumer/tests/integration/test_performance.py
+- [X] T019 [P] `depends_on: T003, T004, T006` Add performance benchmark test that verifies consumer processes 1,000 messages without data loss or corruption (SC-003) in consumer/tests/integration/test_consumer_performance.py
 - [X] T020 `depends_on: T007` Configure pytest JUnit XML output for CI integration
 - [X] T021 `depends_on: T004, T007` Add test isolation validation — verify test topics are cleaned up after each run and do not interfere with production topics (per quickstart.md troubleshooting)
 - [X] T022 `depends_on: T001` Update docker-compose.test.yml with resource limits (per Constitution Principle IV: Performance Requirements)
@@ -158,7 +158,7 @@ Tests live under each component's `tests/` directory:
 ```bash
 # Launch producer and consumer test harnesses together:
 Task: "Implement producer test harness in producer/tests/integration/test_message_flow.py"
-Task: "Implement consumer test harness in consumer/tests/integration/test_message_flow.py"
+Task: "Implement consumer test harness in consumer/tests/integration/test_consumer_message_flow.py"
 ```
 
 ---

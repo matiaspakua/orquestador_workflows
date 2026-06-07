@@ -1,12 +1,17 @@
 # Orchestrator Event Flow
 
-## Kafka Topic
+## Kafka Topics
 
-All orchestration events are published to the `orchestration-events` topic.
-
-**Kafka key**: `workflow_execution_id` (UUID) — guarantees ordering per execution instance.
-
----
+| Topic | Purpose |
+|-------|---------|
+| `orchestration-events` | Lifecycle events (WorkflowStarted, StepStarted, etc.) |
+| `orchestration-results` | Worker results consumed by the orchestrator |
+| `orchestration-dlq` | Failed messages for dead-letter processing |
+| `order-validation` | Tasks for the OrderValidator worker |
+| `fraud-check` | Tasks for the FraudChecker worker |
+| `inventory-check` | Tasks for the InventoryChecker worker |
+| `notification-send` | Tasks for the NotificationSender worker |
+| `data-events` | Domain events from the producer |
 
 ## Success Path
 
@@ -58,9 +63,9 @@ WorkflowFailed
 | `WorkflowStarted` | Execution transitions Pending → Running | `input`, `definition_name`, `definition_version` |
 | `StepStarted` | A step begins execution | `step_id`, `step_name`, `step_type`, `attempt`, `input` |
 | `StepCompleted` | A step finishes successfully | `step_id`, `output`, `duration_ms`, `next_step_id` |
-| `StepFailed` | A step fails | `step_id`, `error_message`, `error_code`, `attempt`, `will_retry`, `next_retry_in_seconds` |
+| `StepFailed` | A step fails | `step_id`, `error_message`, `error_code`, `attempt`, `will_retry` |
 | `WorkflowCompleted` | All steps complete | `result`, `total_duration_ms`, `steps_completed`, `steps_total` |
-| `WorkflowFailed` | Workflow terminates on error | `error`, `error_code`, `failed_step_id`, `failed_step_name`, `total_duration_ms`, `steps_completed` |
+| `WorkflowFailed` | Workflow terminates on error | `error`, `error_code`, `failed_step_id`, `total_duration_ms` |
 
 ---
 
@@ -70,10 +75,7 @@ Every event carries `workflow_execution_id` in the envelope. To trace a complete
 
 ### Using Kafka key
 
-All events for execution `abc-123` are written with Kafka key `abc-123`. Since they all go to the same partition, they appear in strict chronological order.
-
 ```bash
-# Consume all events for a specific execution
 kafka-console-consumer \
   --bootstrap-server localhost:9092 \
   --topic orchestration-events \
@@ -81,39 +83,26 @@ kafka-console-consumer \
   | jq 'select(.workflow_execution_id == "abc-123")'
 ```
 
-### Using the database log
-
-If events are mirrored to the `orchestration_events` PostgreSQL table:
-
-```sql
-SELECT event_type, step_name, timestamp, payload
-FROM orchestration_events
-WHERE workflow_execution_id = 'abc-123'
-ORDER BY timestamp;
-```
-
 ### Using Grafana / Loki
 
-Filter logs by the structured field `workflow_execution_id`:
-
 ```logql
-{container="producer"} | json | workflow_execution_id = "abc-123"
+{container="workers"} | json | workflow_execution_id = "abc-123"
 ```
 
 ---
 
-## Envelope Structure (all events)
+## gRPC Event Streaming
 
-```json
-{
-  "event_type": "WorkflowStarted",
-  "schema_version": 1,
-  "workflow_id": "<definition UUID>",
-  "workflow_execution_id": "<execution UUID>",
-  "workflow_definition_id": "<definition UUID>",
-  "step_id": null,
-  "step_name": null,
-  "timestamp": "2026-06-03T12:00:00.000Z",
-  "payload": { "...event-specific fields..." }
-}
+```python
+import grpc
+from workflow_service_pb2_grpc import WorkflowOrchestratorStub
+from workflow_service_pb2 import StreamRequest
+
+channel = grpc.insecure_channel("localhost:50051")
+stub = WorkflowOrchestratorStub(channel)
+
+for event in stub.StreamWorkflowEvents(
+    StreamRequest(workflow_execution_id="abc-123")
+):
+    print(event.event_type, event.payload)
 ```

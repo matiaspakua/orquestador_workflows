@@ -1,12 +1,5 @@
-# Test runner image for the producer-consumer integration suite (feature 005).
-# Bundles Python 3.11 (matching the producer/consumer services), the Docker CLI
-# (for failure-injection tests that stop/start sibling containers), and the test
-# dependencies declared in both component requirements files.
 FROM python:3.11-slim
 
-# Docker CLI only (no daemon) — talks to the host daemon via the mounted socket.
-# Debian's docker.io package no longer ships the `docker` client binary, so we
-# pull the static CLI directly (arch-aware: x86_64 / aarch64).
 ARG DOCKER_CLI_VERSION=27.3.1
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl ca-certificates \
@@ -17,12 +10,13 @@ RUN apt-get update \
 
 WORKDIR /workspace
 
-# Install the union of producer + consumer dependencies (which now include the
-# pytest test stack per T002).
 COPY producer/requirements.txt /tmp/producer-requirements.txt
 COPY consumer/requirements.txt /tmp/consumer-requirements.txt
 RUN pip install --no-cache-dir -r /tmp/producer-requirements.txt \
     && pip install --no-cache-dir -r /tmp/consumer-requirements.txt
 
-# Source is mounted at runtime via docker-compose volume; nothing else to copy.
+RUN pip install --no-cache-dir \
+    "requests>=2.31.0" \
+    "pytest-cov>=5.0"
+
 CMD ["scripts/test/run-integration.sh"]

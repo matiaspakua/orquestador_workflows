@@ -1,12 +1,11 @@
 services:
-  # PostgreSQL - Almacenamiento de datos
   postgres:
     image: postgres:15-alpine
     container_name: event-postgres
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER:-eventuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-eventpass}
+      POSTGRES_DB: ${POSTGRES_DB:-eventdb}
     ports:
       - "5432:5432"
     volumes:
@@ -17,7 +16,7 @@ services:
     networks:
       - event-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-eventuser}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -27,7 +26,6 @@ services:
           cpus: '1'
           memory: 512M
 
-  # Zookeeper para Kafka
   zookeeper:
     image: confluentinc/cp-zookeeper:7.4.0
     container_name: event-zookeeper
@@ -42,7 +40,6 @@ services:
           cpus: '0.5'
           memory: 256M
 
-  # Kafka - Sistema de mensajería
   kafka:
     image: confluentinc/cp-kafka:7.4.0
     container_name: event-kafka
@@ -75,7 +72,6 @@ services:
           cpus: '1'
           memory: 1G
 
-  # Kafka UI - Interfaz web para monitoreo
   kafka-ui:
     image: provectuslabs/kafka-ui:v0.7.2
     container_name: event-kafka-ui
@@ -94,7 +90,6 @@ services:
           cpus: '0.5'
           memory: 256M
 
-  # Productor
   producer:
     build: ./producer
     container_name: event-producer
@@ -105,12 +100,13 @@ services:
         condition: service_healthy
     environment:
       POSTGRES_HOST: postgres
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
-      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BROKER}
-      KAFKA_TOPIC: ${KAFKA_TOPIC}
-      PRODUCER_INTERVAL: ${PRODUCER_INTERVAL}
+      POSTGRES_USER: ${POSTGRES_USER:-eventuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-eventpass}
+      POSTGRES_DB: ${POSTGRES_DB:-eventdb}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BROKER:-kafka:29092}
+      KAFKA_TOPIC: ${KAFKA_TOPIC:-data-events}
+      PRODUCER_INTERVAL: ${PRODUCER_INTERVAL:-5}
+      METRICS_PORT: "8000"
     networks:
       - event-network
     restart: unless-stopped
@@ -125,7 +121,6 @@ services:
           cpus: '0.5'
           memory: 256M
 
-  # Consumidor - 2 instancias para simular escalado
   consumer1:
     build: ./consumer
     container_name: event-consumer1
@@ -137,13 +132,14 @@ services:
     environment:
       CONSUMER_ID: consumer-1
       POSTGRES_HOST: postgres
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
-      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BROKER}
-      KAFKA_TOPIC: ${KAFKA_TOPIC}
-      KAFKA_GROUP_ID: ${CONSUMER_GROUP}
-      CONSUMER_TIMEOUT: 30000
+      POSTGRES_USER: ${POSTGRES_USER:-eventuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-eventpass}
+      POSTGRES_DB: ${POSTGRES_DB:-eventdb}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BROKER:-kafka:29092}
+      KAFKA_TOPIC: ${KAFKA_TOPIC:-data-events}
+      KAFKA_GROUP_ID: ${CONSUMER_GROUP:-data-processors}
+      CONSUMER_TIMEOUT: "30000"
+      METRICS_PORT: "8000"
     networks:
       - event-network
     restart: unless-stopped
@@ -169,13 +165,14 @@ services:
     environment:
       CONSUMER_ID: consumer-2
       POSTGRES_HOST: postgres
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
-      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BROKER}
-      KAFKA_TOPIC: ${KAFKA_TOPIC}
-      KAFKA_GROUP_ID: ${CONSUMER_GROUP}
-      CONSUMER_TIMEOUT: 30000
+      POSTGRES_USER: ${POSTGRES_USER:-eventuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-eventpass}
+      POSTGRES_DB: ${POSTGRES_DB:-eventdb}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BROKER:-kafka:29092}
+      KAFKA_TOPIC: ${KAFKA_TOPIC:-data-events}
+      KAFKA_GROUP_ID: ${CONSUMER_GROUP:-data-processors}
+      CONSUMER_TIMEOUT: "30000"
+      METRICS_PORT: "8000"
     networks:
       - event-network
     restart: unless-stopped
@@ -190,7 +187,6 @@ services:
           cpus: '0.5'
           memory: 256M
 
-  # Orchestrator — manages workflow lifecycle and coordinates workers
   orchestrator:
     build: ./orchestrator
     container_name: event-orchestrator
@@ -201,13 +197,13 @@ services:
         condition: service_healthy
     environment:
       POSTGRES_HOST: postgres
-      POSTGRES_PORT: 5432
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
-      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BROKER}
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: ${POSTGRES_USER:-eventuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-eventpass}
+      POSTGRES_DB: ${POSTGRES_DB:-eventdb}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BROKER:-kafka:29092}
       WORKFLOW_INTERVAL: ${WORKFLOW_INTERVAL:-60}
-      METRICS_PORT: 8000
+      METRICS_PORT: "8000"
     networks:
       - event-network
     restart: unless-stopped
@@ -222,7 +218,6 @@ services:
           cpus: '0.5'
           memory: 256M
 
-  # Workers — 4 services: OrderValidator, FraudChecker, InventoryChecker, NotificationSender
   workers:
     build: ./workers
     container_name: event-workers
@@ -230,8 +225,8 @@ services:
       kafka:
         condition: service_healthy
     environment:
-      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BROKER}
-      METRICS_PORT: 8000
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BROKER:-kafka:29092}
+      METRICS_PORT: "8000"
     networks:
       - event-network
     restart: unless-stopped
@@ -246,7 +241,6 @@ services:
           cpus: '1'
           memory: 256M
 
-  # UI Web para monitoreo
   web-ui:
     build: ./ui
     container_name: event-web-ui
@@ -254,17 +248,20 @@ services:
       - postgres
     ports:
       - "5000:5000"
+      - "50051:50051"
     environment:
       POSTGRES_HOST: postgres
-      POSTGRES_PORT: 5432
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: ${POSTGRES_USER:-eventuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-eventpass}
+      POSTGRES_DB: ${POSTGRES_DB:-eventdb}
       FLASK_DEBUG: "0"
+      GRPC_PORT: "50051"
+      GRPC_ENABLED: "1"
     networks:
       - event-network
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/workflows')"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -274,8 +271,6 @@ services:
         limits:
           cpus: '0.5'
           memory: 256M
-
-  # ── Monitoring stack (features 002 + 004) ───────────────────────────────────
 
   prometheus:
     image: prom/prometheus:v2.51.0
@@ -391,7 +386,6 @@ services:
           cpus: '0.25'
           memory: 128M
 
-  # pgAdmin para administración de PostgreSQL
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: event-pgadmin
