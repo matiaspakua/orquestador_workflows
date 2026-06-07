@@ -8,7 +8,7 @@
 | Alertmanager   | http://localhost:9093             | None                                 |
 | Loki           | http://localhost:3100/ready       | None (health check)                  |
 | cAdvisor       | http://localhost:8080             | None                                 |
-| Grafana*       | http://localhost:3002             | `admin` / `grafana123` (spec 002)    |
+| Grafana*       | http://localhost:3000             | `admin` / `admin` (spec 002)         |
 
 *\* Grafana is configured as part of spec 002. Add Prometheus and Loki as data sources to view metrics and logs.*
 
@@ -26,7 +26,7 @@
 ## Searching Logs
 
 ### Via Grafana Explore
-1. Open Grafana (http://localhost:3002) and navigate to **Explore** (compass icon).
+1. Open Grafana (http://localhost:3000) and navigate to **Explore** (compass icon).
 2. Select the **Loki** data source.
 3. Use LogQL queries:
    - `{component="producer"}` — all logs from the producer

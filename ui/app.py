@@ -1,12 +1,48 @@
 import os
 import json
+import logging
 import time
 import psycopg2
 import psycopg2.extras
 from psycopg2 import OperationalError as PgOperationalError
 from flask import Flask, render_template, jsonify, request, Response, stream_with_context
+from prometheus_client import start_http_server, Counter, Gauge, Info
 
 from services import workflow_service
+
+# ── Prometheus metrics ──────────────────────────────────────────
+METRICS_PORT = int(os.getenv("METRICS_PORT", "8000"))
+HTTP_REQUESTS = Counter("ui_http_requests_total", "HTTP requests", ["method", "endpoint", "status"])
+HTTP_ERRORS = Counter("ui_errors_total", "HTTP errors", ["type"])
+HEALTH_STATUS = Gauge("health_status", "1=healthy 0=unhealthy", ["component"])
+COMPONENT_INFO = Info("ui_component_info", "Web UI component metadata")
+COMPONENT_INFO.info({"name": "web-ui", "language": "python", "version": "1.0.0"})
+
+def start_metrics_server():
+    try:
+        start_http_server(METRICS_PORT)
+        logging.getLogger(__name__).info("Metrics server started on port %d", METRICS_PORT)
+    except Exception as e:
+        logging.getLogger(__name__).warning("Metrics server not started: %s", e)
+
+# ── JSON logging ────────────────────────────────────────────────
+def configure_logging():
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.INFO)
+    try:
+        from pythonjsonlogger import jsonlogger
+        handler = logging.StreamHandler()
+        handler.setFormatter(jsonlogger.JsonFormatter(
+            fmt="%(asctime)s %(name)s %(levelname)s %(message)s",
+        ))
+        # Replace Flask's default handler
+        for h in logger.root.handlers[:]:
+            logger.root.removeHandler(h)
+        logger.root.addHandler(handler)
+    except ImportError:
+        logger.info("python-json-logger not installed; using plain logging")
+
+configure_logging()
 
 app = Flask(__name__)
 
@@ -30,6 +66,18 @@ def get_db_connection():
     )
 
 
+@app.after_request
+def track_metrics(response):
+    HTTP_REQUESTS.labels(method=request.method, endpoint=request.path, status=response.status_code).inc()
+    return response
+
+
+@app.route("/metrics")
+def metrics():
+    from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+    return Response(generate_latest(), content_type=CONTENT_TYPE_LATEST)
+
+
 @app.route("/health")
 def health():
     return jsonify({"status": "healthy", "service": "web-ui"}), 200
@@ -42,6 +90,7 @@ def ready():
         conn.close()
         return jsonify({"status": "ready", "database": "connected"}), 200
     except Exception as e:
+        HEALTH_STATUS.labels(component="database").set(0)
         return jsonify({"status": "not_ready", "database": str(e)}), 503
 
 
@@ -342,6 +391,11 @@ def workflow_stream():
         },
     )
 
+
+# Start the Prometheus metrics HTTP server on a background thread.
+# Only the first gunicorn worker succeeds; subsequent workers log a warning
+# and continue — single process metrics are sufficient.
+start_metrics_server()
 
 if __name__ == "__main__":
     port = int(os.getenv("FLASK_PORT", "5000"))

@@ -12,6 +12,7 @@
       "title": "Total Executions",
       "type": "stat",
       "gridPos": { "x": 0, "y": 0, "w": 4, "h": 4 },
+      "fieldConfig": { "defaults": { "noValue": "No data" } },
       "targets": [{ "expr": "sum(workflow_executions_total)", "legendFormat": "Total" }]
     },
     {
@@ -19,6 +20,7 @@
       "title": "Currently Running",
       "type": "stat",
       "gridPos": { "x": 4, "y": 0, "w": 4, "h": 4 },
+      "fieldConfig": { "defaults": { "noValue": "No data", "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": 0 }, { "color": "yellow", "value": 5 }, { "color": "red", "value": 20 }] } } },
       "targets": [{ "expr": "workflow_running", "legendFormat": "Running" }],
       "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": 0 }, { "color": "yellow", "value": 5 }, { "color": "red", "value": 20 }] } } }
     },

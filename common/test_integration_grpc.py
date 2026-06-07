@@ -194,3 +194,54 @@ def test_api_rate_limit():
             assert r.status_code in (200, 503)
     except requests.ConnectionError:
         pytest.skip(f"Cannot connect to {HOST}")
+
+
+@pytest.mark.metrics
+def test_metrics_endpoint_accessible():
+    """Verify the /metrics endpoint returns Prometheus-format data.
+
+    Covers spec-002 T021 — integration test for the metrics exposition endpoint.
+    """
+    try:
+        r = requests.get(f"{HOST}/metrics", timeout=5)
+        assert r.status_code == 200
+        assert "text/plain" in r.headers.get("content-type", "")
+        body = r.text
+        # Prometheus exposition format includes HELP and TYPE lines.
+        assert "# HELP" in body, "/metrics does not look like Prometheus format"
+        assert "# TYPE" in body
+    except requests.ConnectionError:
+        pytest.skip(f"Cannot connect to {HOST}")
+
+
+@pytest.mark.metrics
+def test_metrics_contains_required_metrics():
+    """Check that key Web UI metrics are present in the /metrics output."""
+    required_metrics = [
+        "ui_http_requests_total",
+        "health_status",
+        "ui_component_info",
+        "process_virtual_memory_bytes",
+        "python_info",
+    ]
+    try:
+        r = requests.get(f"{HOST}/metrics", timeout=5)
+        assert r.status_code == 200
+        for metric in required_metrics:
+            assert metric in r.text, f"Required metric {metric} missing from /metrics"
+    except requests.ConnectionError:
+        pytest.skip(f"Cannot connect to {HOST}")
+
+
+@pytest.mark.metrics
+def test_metrics_includes_labels():
+    """Verify emitted metrics carry correct label dimensions."""
+    try:
+        r = requests.get(f"{HOST}/metrics", timeout=5)
+        assert r.status_code == 200
+        # health_status should have a 'component' label
+        assert 'health_status{component="web-ui"}' in r.text or \
+               'health_status{component="database"}' in r.text
+        assert 'ui_component_info' in r.text
+    except requests.ConnectionError:
+        pytest.skip(f"Cannot connect to {HOST}")
