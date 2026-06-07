@@ -4,14 +4,12 @@ Unit tests for common/shared modules.
 
 import os
 import sys
-import json
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from common.config import env_str, env_int, env_bool, POSTGRES_CONFIG, KAFKA_BOOTSTRAP
-from common.db import get_pool, close_pool
+from common.config import KAFKA_BOOTSTRAP, POSTGRES_CONFIG, env_bool, env_int, env_str
+from common.db import close_pool, get_pool
 
 
 class TestConfig:
@@ -56,7 +54,7 @@ class TestConfig:
 class TestDb:
     def test_get_pool_creates_pool(self):
         close_pool()
-        with patch("common.db.pg_pool.ThreadedConnectionPool") as mock_pool:
+        with patch("common.db.pg_pool.ThreadedConnectionPool"):
             pool = get_pool(minconn=1, maxconn=2)
             assert pool is not None
             close_pool()

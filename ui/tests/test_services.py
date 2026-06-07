@@ -2,10 +2,9 @@
 Unit tests for workflow_service.py with mocked DB connection.
 """
 
-from unittest.mock import patch, MagicMock
-import json
-import sys
 import os
+import sys
+from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
@@ -105,7 +104,8 @@ def test_get_workflow_execution_count_with_filter():
 
 
 def test_get_workflow_execution_found():
-    mock_conn = MockConn([{"id": "abc", "name": "Test", "status": "Running", "started_at": None, "completed_at": None, "duration_seconds": None}])
+    mock_conn = MockConn([{"id": "abc", "name": "Test", "status": "Running",
+                           "started_at": None, "completed_at": None, "duration_seconds": None}])
     with patch("services.workflow_service.get_db_connection", return_value=mock_conn):
         result = workflow_service.get_workflow_execution("abc")
     assert result is not None

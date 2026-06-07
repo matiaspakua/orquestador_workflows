@@ -1,13 +1,13 @@
-import os
 import json
 import logging
+import os
 import time
+
 import psycopg2
 import psycopg2.extras
+from flask import Flask, Response, jsonify, render_template, request, stream_with_context
+from prometheus_client import Counter, Gauge, Info, start_http_server
 from psycopg2 import OperationalError as PgOperationalError
-from flask import Flask, render_template, jsonify, request, Response, stream_with_context
-from prometheus_client import start_http_server, Counter, Gauge, Info
-
 from services import workflow_service
 
 # ── Prometheus metrics ──────────────────────────────────────────
@@ -74,7 +74,7 @@ def track_metrics(response):
 
 @app.route("/metrics")
 def metrics():
-    from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+    from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
     return Response(generate_latest(), content_type=CONTENT_TYPE_LATEST)
 
 

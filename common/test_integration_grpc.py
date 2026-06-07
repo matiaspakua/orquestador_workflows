@@ -8,11 +8,9 @@ Usage:
 
 import os
 import sys
-import json
-import time
+
 import pytest
 import requests
-from unittest.mock import patch, MagicMock
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
@@ -117,12 +115,12 @@ def test_gRPC_server_availability():
     """Test gRPC server is reachable if grpc is available."""
     grpc = pytest.importorskip("grpc", reason="grpc not installed")
     try:
-        from workflow_service_pb2_grpc import WorkflowOrchestratorStub
-        from workflow_service_pb2 import WorkflowStatusRequest
+        from common.workflow_service_pb2 import WorkflowStatusRequest
+        from common.workflow_service_pb2_grpc import WorkflowOrchestratorStub
         channel = grpc.insecure_channel(f"{GRPC_HOST}:{GRPC_PORT}")
         grpc.channel_ready_future(channel).result(timeout=3)
         stub = WorkflowOrchestratorStub(channel)
-        resp = stub.GetWorkflowStatus(WorkflowStatusRequest(workflow_execution_id="test"))
+        stub.GetWorkflowStatus(WorkflowStatusRequest(workflow_execution_id="test"))
         channel.close()
     except Exception as e:
         pytest.skip(f"gRPC not available: {e}")
@@ -132,8 +130,8 @@ def test_gRPC_workflow_status():
     """Test gRPC workflow status call."""
     grpc = pytest.importorskip("grpc", reason="grpc not installed")
     try:
-        from workflow_service_pb2_grpc import WorkflowOrchestratorStub
-        from workflow_service_pb2 import WorkflowStatusRequest, ListWorkflowsRequest
+        from common.workflow_service_pb2 import ListWorkflowsRequest
+        from common.workflow_service_pb2_grpc import WorkflowOrchestratorStub
         channel = grpc.insecure_channel(f"{GRPC_HOST}:{GRPC_PORT}")
         grpc.channel_ready_future(channel).result(timeout=3)
         stub = WorkflowOrchestratorStub(channel)

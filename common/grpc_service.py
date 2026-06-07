@@ -1,14 +1,13 @@
-import json
-import os
-import sys
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 
 _grpc_available = False
 try:
-    import grpc
     from concurrent import futures
+
+    import grpc
     _grpc_available = True
 except ImportError:
     grpc = None
@@ -16,9 +15,7 @@ except ImportError:
 
 
 try:
-    sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-    import workflow_service_pb2
-    import workflow_service_pb2_grpc
+    from common import workflow_service_pb2, workflow_service_pb2_grpc
     _proto_available = True
 except ImportError:
     workflow_service_pb2 = None
@@ -134,7 +131,7 @@ def start_grpc_server(workflow_service_module) -> grpc.Server | None:
         return None
 
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    servicer = workflow_service_pb2_grpc.add_WorkflowOrchestratorServicer_to_server(
+    workflow_service_pb2_grpc.add_WorkflowOrchestratorServicer_to_server(
         WorkflowGrpcServicer(workflow_service_module), server
     )
     server.add_insecure_port(f"0.0.0.0:{GRPC_PORT}")

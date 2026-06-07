@@ -8,11 +8,11 @@ Usage:
     pytest ui/tests_e2e/ -v
 """
 
-import os
 import json
+import os
 import time
+
 import pytest
-from unittest.mock import patch, MagicMock
 
 HOST = os.getenv("TEST_HOST", "http://localhost:5000")
 
@@ -174,7 +174,10 @@ def test_api_health_endpoint(browser_context):
     page = browser_context.new_page()
     try:
         resp = page.goto(f"{HOST}/health", wait_until="networkidle")
-        body = json.loads(page.locator("pre").text_content() if page.locator("pre").is_visible() else page.locator("body").text_content())
+        pre = page.locator("pre")
+        pre_visible = pre.is_visible()
+        raw = pre.text_content() if pre_visible else page.locator("body").text_content()
+        body = json.loads(raw)
         assert resp.status == 200
         assert body.get("status") == "healthy"
     finally:

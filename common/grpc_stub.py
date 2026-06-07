@@ -1,13 +1,12 @@
 """gRPC client stub for integration testing - falls back to REST if unavailable."""
 
-import json
 import logging
 
 logger = logging.getLogger(__name__)
 
 _grpc_available = False
 try:
-    import grpc
+    import grpc  # noqa: F401 — used via try/except availability check
     _grpc_available = True
 except ImportError:
     pass
@@ -24,9 +23,8 @@ class GrpcClientStub:
     def _connect(self):
         try:
             import grpc
-            import sys, os
-            sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-            import workflow_service_pb2_grpc
+
+            from common import workflow_service_pb2_grpc
             self.channel = grpc.insecure_channel(self.address)
             self.stub = workflow_service_pb2_grpc.WorkflowOrchestratorStub(self.channel)
         except Exception as e:
@@ -47,7 +45,7 @@ class GrpcClientStub:
         if not self.stub:
             return None
         try:
-            import workflow_service_pb2
+            from common import workflow_service_pb2
             resp = self.stub.GetWorkflowStatus(
                 workflow_service_pb2.WorkflowStatusRequest(
                     workflow_execution_id=execution_id

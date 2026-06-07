@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "feat/**", "fix/**"]
+  pull_request:
+    branches: [main]
+
+env:
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install ruff
+        run: pip install ruff>=0.3
+      - name: Run ruff
+        run: ruff check ui/ common/ tests_support/ --quiet
+
+  unit-tests:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install pytest>=8.0 pytest-timeout>=2.2 pytest-cov>=5.0
+          pip install requests>=2.31 grpcio>=1.62 kafka-python
+          pip install prometheus_client python-json-logger
+          pip install -e .
+      - name: Run unit tests
+        run: python -m pytest ui/tests/ common/ tests_support/ -v --ignore=ui/tests_e2e --ignore=producer/tests --ignore=consumer/tests
+
+  schema-validation:
+    name: Schema validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install dependencies
+        run: pip install jsonschema
+      - name: Validate JSON schemas
+        run: python tests_support/validate_schemas.py
+
+  docker-build:
+    name: Docker build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [ui, producer, consumer, orchestrator, workers]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build ${{ matrix.service }} image
+        run: docker build -t orquestador-${{ matrix.service }} ./${{ matrix.service }}
