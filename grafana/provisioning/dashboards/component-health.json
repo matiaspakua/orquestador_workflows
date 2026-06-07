@@ -14,6 +14,7 @@
       "gridPos": { "x": 0, "y": 0, "w": 4, "h": 4 },
       "fieldConfig": {
         "defaults": {
+          "noValue": "No data",
           "mappings": [
             { "options": { "0": { "text": "Unhealthy", "color": "red" }, "1": { "text": "Healthy", "color": "green" } }, "type": "value" }
           ],
@@ -29,6 +30,7 @@
       "gridPos": { "x": 4, "y": 0, "w": 4, "h": 4 },
       "fieldConfig": {
         "defaults": {
+          "noValue": "No data",
           "mappings": [
             { "options": { "0": { "text": "Unhealthy", "color": "red" }, "1": { "text": "Healthy", "color": "green" } }, "type": "value" }
           ],
@@ -44,6 +46,7 @@
       "gridPos": { "x": 8, "y": 0, "w": 4, "h": 4 },
       "fieldConfig": {
         "defaults": {
+          "noValue": "No data",
           "mappings": [
             { "options": { "0": { "text": "Unhealthy", "color": "red" }, "1": { "text": "Healthy", "color": "green" } }, "type": "value" }
           ],
@@ -57,6 +60,7 @@
       "title": "Messages Published (total)",
       "type": "stat",
       "gridPos": { "x": 0, "y": 4, "w": 6, "h": 4 },
+      "fieldConfig": { "defaults": { "noValue": "No data" } },
       "targets": [{ "expr": "sum(messages_published_total)", "legendFormat": "Total" }]
     },
     {
@@ -64,6 +68,7 @@
       "title": "Messages Consumed (total)",
       "type": "stat",
       "gridPos": { "x": 6, "y": 4, "w": 6, "h": 4 },
+      "fieldConfig": { "defaults": { "noValue": "No data" } },
       "targets": [{ "expr": "sum(messages_consumed_total)", "legendFormat": "Total" }]
     },
     {

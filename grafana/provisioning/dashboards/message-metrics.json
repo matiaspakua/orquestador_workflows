@@ -28,6 +28,7 @@
       "title": "Total Published",
       "type": "stat",
       "gridPos": { "x": 0, "y": 6, "w": 4, "h": 4 },
+      "fieldConfig": { "defaults": { "noValue": "No data" } },
       "targets": [{ "expr": "sum(messages_published_total)", "legendFormat": "Published" }]
     },
     {
@@ -35,6 +36,7 @@
       "title": "Total Consumed",
       "type": "stat",
       "gridPos": { "x": 4, "y": 6, "w": 4, "h": 4 },
+      "fieldConfig": { "defaults": { "noValue": "No data" } },
       "targets": [{ "expr": "sum(messages_consumed_total)", "legendFormat": "Consumed" }]
     },
     {
