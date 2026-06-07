@@ -2,20 +2,19 @@
 Unit tests for the message contract helpers (tests_support/contract.py).
 """
 
-import sys
 import os
-import json
+import sys
 import uuid
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from tests_support.contract import (
-    build_message,
-    build_ack,
-    is_valid_message,
-    validate_message,
-    sign_payload,
     KAFKA_MESSAGE_MAX_BYTES,
+    build_ack,
+    build_message,
+    is_valid_message,
+    sign_payload,
+    validate_message,
 )
 
 

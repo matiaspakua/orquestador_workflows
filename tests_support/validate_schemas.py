@@ -1,11 +1,10 @@
 """Validate JSON Schema contracts against example and intentionally-invalid payloads."""
 import json
-import os
 import sys
 from pathlib import Path
 
 try:
-    from jsonschema import validate, ValidationError
+    from jsonschema import ValidationError, validate
 except ImportError:
     from jsonschema import Draft7Validator
 
@@ -35,7 +34,7 @@ def test_valid(desc, schema, instance):
 def test_invalid(desc, schema, instance):
     valid, err = test_valid(desc, schema, instance)
     if valid:
-        return False, f"Expected validation error but instance was accepted"
+        return False, "Expected validation error but instance was accepted"
     return True, None
 
 
@@ -367,59 +366,8 @@ def main():
     # ------------------------------------------------------------------ #
     total = results["pass"] + results["fail"]
     pct = (results["pass"] / total * 100) if total else 0
-    invalid_rejected = 0
-    valid_tests = 0
-    for label, ok, _ in [
-        ("no-name", False, ""),
-        ("no-version", False, ""),
-        ("empty-steps", False, ""),
-        ("bad-version", False, ""),
-        ("bad-step-type", False, ""),
-        ("extra-step-prop", False, ""),
-        ("extra-root-prop", False, ""),
-        ("no-step-config", False, ""),
-        ("bad-exec-status", False, ""),
-        ("no-exec-id", False, ""),
-        ("ws-no-def-name", False, ""),
-        ("ss-bad-type", False, ""),
-        ("sc-no-duration", False, ""),
-        ("sf-no-retry", False, ""),
-        ("wc-no-steps-total", False, ""),
-        ("wf-no-error", False, ""),
-    ]:
-        if ok:
-            valid_tests += 1
-    invalid_tests = total - valid_tests
-
-    # Count how many invalid tests correctly failed (i.e., test_invalid returned True)
-    # We already counted them as pass above.
-    invalid_rejected = sum(1 for msg in results["errors"] if "FAIL" in msg)
-    # Actually, our pass/fail counts already track this correctly.
-    # Let's compute the rejection rate differently.
-    invalid_tests_count = 0
-    invalid_passed = 0
-    for entry in [
-        "  PASS  missing 'name' is rejected",
-        "  PASS  missing 'version' is rejected",
-        "  PASS  empty steps array is rejected",
-        "  PASS  non-semver version is rejected",
-        "  PASS  invalid step type is rejected",
-        "  PASS  step with unknown property is rejected",
-        "  PASS  root with unknown property is rejected",
-        "  PASS  step missing 'config' is rejected",
-        "  PASS  invalid status is rejected",
-        "  PASS  missing 'id' is rejected",
-        "  PASS  WorkflowStarted missing payload.definition_name is rejected",
-        "  PASS  StepStarted invalid step_type is rejected",
-        "  PASS  StepCompleted missing payload.duration_ms is rejected",
-        "  PASS  StepFailed missing payload.will_retry is rejected",
-        "  PASS  WorkflowCompleted missing payload.steps_total is rejected",
-        "  PASS  WorkflowFailed missing payload.error is rejected",
-    ]:
-        stripped = entry.replace("  PASS  ", "")
-        invalid_tests_count += 1
-        if entry.strip().startswith("PASS"):
-            invalid_passed += 1
+    invalid_tests_count = 16
+    invalid_passed = results["pass"] - 8  # 8 valid tests
 
     print(f"\n{'='*60}")
     print(f"  Total tests:  {total}")

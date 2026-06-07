@@ -41,3 +41,14 @@ test-results/
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*
+
+# Node modules (opencode tooling)
+.opencode/node_modules/
+
+# Generated diagrams (PlantUML output)
+diagrams/*.png
+diagrams/*.svg
+
+# OS metadata
+.DS_Store
+Thumbs.db

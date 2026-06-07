@@ -1,16 +1,12 @@
 """Generated protobuf definitions - manual stub for testing."""
 from __future__ import annotations
 
-import sys
-import os
-
-sys.path.insert(0, os.path.dirname(__file__))
-
 _grpc_import_error = None
 try:
+    from concurrent import futures
+
     import grpc
     from grpc import StatusCode
-    from concurrent import futures
 except ImportError as e:
     _grpc_import_error = e
     grpc = None

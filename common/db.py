@@ -1,5 +1,6 @@
-import time
 import logging
+import time
+
 import psycopg2
 from psycopg2 import pool as pg_pool
 

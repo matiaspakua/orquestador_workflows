@@ -4,9 +4,10 @@ All DB calls are mocked so no database is required.
 """
 import json
 from unittest.mock import patch
-from psycopg2 import OperationalError as PgOperationalError
-from .conftest import EXEC_LIST, EXEC_DETAIL, STEPS
 
+from psycopg2 import OperationalError as PgOperationalError
+
+from .conftest import EXEC_DETAIL, EXEC_LIST, STEPS
 
 # ── /api/workflows ────────────────────────────────────────────────────────────
 
@@ -154,7 +155,7 @@ class TestWorkflowStream:
         with patch('app.workflow_service.get_recent_status_changes', return_value=[]), \
              patch('time.sleep', side_effect=StopIteration):
             try:
-                r = client.get('/api/workflows/stream')
+                client.get('/api/workflows/stream')
             except StopIteration:
                 pass
             # Flask returns the response object even if generator raises

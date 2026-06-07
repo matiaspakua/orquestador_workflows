@@ -8,6 +8,7 @@ fixtures live in ``producer/tests/conftest.py`` and ``consumer/tests/conftest.py
 from __future__ import annotations
 
 import os
+import socket
 
 import pytest
 
@@ -15,6 +16,16 @@ try:
     from tests_support.kafka_topics import TestTopicManager
 except ImportError:
     TestTopicManager = None  # kafka not installed; integration tests only
+
+
+def _kafka_reachable(host: str, port: int = 29092, timeout: float = 2.0) -> bool:
+    """Check whether the Kafka broker address is reachable (Docker vs local)."""
+    try:
+        sock = socket.create_connection((host, port), timeout=timeout)
+        sock.close()
+        return True
+    except (OSError, socket.gaierror):
+        return False
 
 
 @pytest.fixture(scope="session")
@@ -34,9 +45,12 @@ def _purge_orphan_topics(bootstrap_servers: str):
     """Delete leftover ``test.*`` topics once at suite start (Edge Case 4).
 
     Implements the run-start auto-cleanup decision so an aborted previous run
-    cannot interfere with this one.
+    cannot interfere with this one.  Skipped when running outside Docker
+    (Kafka not reachable).
     """
-    if TestTopicManager is None:
+    host = bootstrap_servers.split(":")[0]
+    port = int(bootstrap_servers.split(":")[1]) if ":" in bootstrap_servers else 29092
+    if TestTopicManager is None or not _kafka_reachable(host, port):
         yield
         return
     mgr = TestTopicManager(bootstrap_servers)
@@ -54,8 +68,10 @@ def topic_manager(bootstrap_servers: str):
     Each test gets isolated ``test.{scenario_id}.{suffix}`` topics that are
     deleted on teardown (test isolation, T021).
     """
-    if TestTopicManager is None:
-        pytest.skip("kafka module not installed")
+    host = bootstrap_servers.split(":")[0]
+    port = int(bootstrap_servers.split(":")[1]) if ":" in bootstrap_servers else 29092
+    if TestTopicManager is None or not _kafka_reachable(host, port):
+        pytest.skip("kafka not reachable (run in Docker)")
     mgr = TestTopicManager(bootstrap_servers)
     try:
         yield mgr
