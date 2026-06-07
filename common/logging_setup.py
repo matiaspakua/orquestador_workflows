@@ -1,7 +1,7 @@
 import logging
 import sys
 
-from pythonjsonlogger.json import JsonFormatter
+from pythonjsonlogger.jsonlogger import JsonFormatter
 
 
 def setup_logging(name: str | None = None, level: int = logging.INFO) -> logging.Logger:

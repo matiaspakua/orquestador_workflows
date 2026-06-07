@@ -14,7 +14,7 @@ import time
 
 import pytest
 
-HOST = os.getenv("TEST_HOST", "http://localhost:5000")
+HOST = os.getenv("TEST_HOST", "http://localhost:5001")
 
 pytestmark = pytest.mark.skipif(
     not os.getenv("E2E_TESTS"),

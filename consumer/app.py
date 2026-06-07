@@ -6,7 +6,7 @@ import psycopg2
 from datetime import datetime, timezone
 from kafka import KafkaConsumer
 from kafka.errors import KafkaError
-from pythonjsonlogger.json import JsonFormatter
+from pythonjsonlogger.jsonlogger import JsonFormatter
 from prometheus_client import (
     start_http_server, Counter, Gauge, Info,
 )
@@ -115,7 +115,7 @@ class EventConsumer:
                     return {
                         "id": result[0],
                         "data_type": result[1],
-                        "payload": json.loads(result[2]),
+                        "payload": json.loads(result[2]) if isinstance(result[2], str) else result[2],
                         "created_at": result[3].isoformat() if result[3] else None,
                         "status": result[4],
                     }

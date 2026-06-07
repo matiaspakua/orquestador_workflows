@@ -14,7 +14,7 @@ import requests
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-HOST = os.getenv("TEST_HOST", "http://localhost:5000")
+HOST = os.getenv("TEST_HOST", "http://localhost:5001")
 GRPC_HOST = os.getenv("GRPC_HOST", "localhost")
 GRPC_PORT = int(os.getenv("GRPC_PORT", "50051"))
 
