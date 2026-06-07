@@ -16,7 +16,7 @@ import threading
 import random
 from kafka import KafkaProducer, KafkaConsumer
 from kafka.errors import KafkaError
-from pythonjsonlogger.json import JsonFormatter
+from pythonjsonlogger.jsonlogger import JsonFormatter
 from prometheus_client import start_http_server, Counter, Gauge, Histogram
 
 # ── Logging ───────────────────────────────────────────────────────────────────

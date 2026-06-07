@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from faker import Faker
 from kafka import KafkaProducer
 from kafka.errors import KafkaError
-from pythonjsonlogger.json import JsonFormatter
+from pythonjsonlogger.jsonlogger import JsonFormatter
 from prometheus_client import (
     start_http_server, Counter, Gauge, Histogram, Info,
 )

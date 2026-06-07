@@ -38,12 +38,12 @@ echo ""
 
 # 3. E2E Playwright tests (requires running UI)
 echo -e "${YELLOW}[3/4] Running E2E tests...${NC}"
-if curl -s http://localhost:5000/health > /dev/null 2>&1; then
+if curl -s http://localhost:5001/health > /dev/null 2>&1; then
     E2E_TESTS=1 python -m pytest ui/tests_e2e/ \
         -v --timeout=30 2>&1 | tail -20 || true
     echo -e "${GREEN}✓ E2E tests complete${NC}"
 else
-    echo -e "${YELLOW}Skipping E2E tests (UI not running on localhost:5000)${NC}"
+    echo -e "${YELLOW}Skipping E2E tests (UI not running on localhost:5001)${NC}"
 fi
 echo ""
 

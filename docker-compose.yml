@@ -247,7 +247,7 @@ services:
     depends_on:
       - postgres
     ports:
-      - "5000:5000"
+      - "5001:5000"
       - "50051:50051"
     environment:
       POSTGRES_HOST: postgres
@@ -261,7 +261,7 @@ services:
     networks:
       - event-network
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5001/health')"]
       interval: 30s
       timeout: 10s
       retries: 3
