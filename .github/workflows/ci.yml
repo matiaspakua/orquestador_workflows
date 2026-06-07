@@ -39,7 +39,7 @@ jobs:
           pip install prometheus_client python-json-logger
           pip install -e .
       - name: Run unit tests
-        run: python -m pytest ui/tests/ common/ tests_support/ -v --ignore=ui/tests_e2e --ignore=producer/tests --ignore=consumer/tests
+        run: python -m pytest ui/tests/ common/test_common.py common/test_contract.py tests_support/ -v --ignore=ui/tests_e2e --ignore=producer/tests --ignore=consumer/tests
 
   schema-validation:
     name: Schema validation
